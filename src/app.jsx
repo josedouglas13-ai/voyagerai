@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AuthPage, { useAuth } from "./auth";
-// import TravelAISaaS from "./travel-ai-saas"; // descomente quando integrar
+import TravelAISaaS from "./travel-ai-saas";
 
 // ─────────────────────────────────────────────
 // App principal — gerencia auth + rotas
@@ -113,26 +113,10 @@ function HomeView({ user, setView }) {
   );
 }
 
-function NewPlanView() {
+function NewPlanView({ user }) {
   return (
     <div style={s.view}>
-      <h2 style={s.viewTitle}>Novo Plano de Viagem</h2>
-      <div style={s.placeholder}>
-        {/* 
-          ✅ INTEGRAÇÃO: Importe e use o componente TravelAISaaS aqui
-          import TravelAISaaS from "./travel-ai-saas";
-          <TravelAISaaS userId={user.id} />
-        */}
-        <div style={s.integrationNote}>
-          <span style={{ fontSize: 40 }}>✈️</span>
-          <p style={{ color: "#C8A96E", fontSize: 18, fontWeight: 600, marginTop: 16 }}>
-            Formulário de Viagem
-          </p>
-          <p style={{ color: "#4A4A6A", fontSize: 14, marginTop: 8 }}>
-            Integre o componente <code style={{ color: "#C8A96E" }}>TravelAISaaS</code> aqui
-          </p>
-        </div>
-      </div>
+      <TravelAISaaS user={user} />
     </div>
   );
 }
