@@ -375,7 +375,15 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
 
         {planGenerated && !generatingPlan && (
           <div style={styles.planFooter} className="no-print">
-            <button style={styles.downloadBtn} onClick={() => window.print()}>⬇ Baixar PDF</button>
+            <button style={styles.downloadBtn} onClick={() => {
+  const printWindow = window.open('', '_blank');
+  const content = document.querySelector('.plan-markdown');
+  if (!content) return;
+  printWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>VoyagerAI — Plano de Viagem</title><style>@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');*{box-sizing:border-box;margin:0;padding:0;}body{background:white;color:#1A1A2A;font-family:'DM Sans',sans-serif;font-size:11pt;line-height:1.7;padding:20mm 25mm;}h1{font-family:'Cormorant Garamond',serif;font-size:22pt;color:#7A5010;margin:18pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:5pt;}h2{font-family:'Cormorant Garamond',serif;font-size:15pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:700;}p{margin:4pt 0;color:#1A1A2A;}li{margin:3pt 0 3pt 16pt;color:#1A1A2A;}strong{color:#5A3A00;}table{border-collapse:collapse;width:100%;margin:8pt 0;page-break-inside:avoid;}td{padding:6pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}tr:first-child td{background:#F5EDD0;color:#7A5010;font-weight:700;}tr:nth-child(even) td{background:#FAFAF5;}a{color:#8B6914;}.header{text-align:center;padding-bottom:14pt;margin-bottom:14pt;border-bottom:2px solid #C8A96E;}@page{margin:15mm 20mm;size:A4;}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}</style></head><body><div class="header"><h1>✈ VOYAGERAI</h1><p style="color:#6A6A8A;font-size:10pt;margin-top:4pt">Consultoria Estratégica de Viagens com IA</p></div>${content.innerHTML}</body></html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => { printWindow.print(); printWindow.close(); }, 1000);
+}}>⬇ Baixar PDF</button>
             <button style={styles.newPlanBtn} onClick={() => {
               setPlanGenerated(false);
               setDisplayText("");
