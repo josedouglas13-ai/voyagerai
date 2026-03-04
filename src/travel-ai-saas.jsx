@@ -216,7 +216,7 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
 },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
+          max_tokens: 8000,
           messages: [{ role: "user", content: prompt }],
         }),
       });
