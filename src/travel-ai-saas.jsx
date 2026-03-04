@@ -162,8 +162,23 @@ ENTREGUE OBRIGATORIAMENTE (em Markdown formatado):
 [Síntese estratégica da viagem, highlights e expectativas]
 
 ### ✈️ ANÁLISE DE VOOS
-[Tabela comparativa com: Companhia | Escala | Duração | Preço Est. | Melhor Para]
-Inclua alternativa econômica e alternativa conforto.
+Você é um especialista em tarifas aéreas. Analise as melhores opções de voo com 3 perfis obrigatórios:
+
+**[A] MAIS BARATO** — menor custo total incluindo taxas e bagagem
+**[B] MELHOR CUSTO-BENEFÍCIO** — equilíbrio entre preço, conforto e tempo  
+**[C] MAIS RÁPIDO/CONVENIENTE** — menor duração ou melhores horários
+
+Apresente em tabela:
+| Perfil | Companhia | Data/Hora | Duração | Conexões | Bagagem | Preço Total |
+
+Para cada perfil inclua: por que foi selecionado, pontos de atenção, estratégias de economia (melhores dias, milhas, bilhetes separados).
+
+Inclua os links de busca abaixo (mantenha exatamente como está):
+🔍 **Google Flights:** https://www.google.com/travel/flights?q=voos+de+${formData.origem}+para+${formData.destino}&hl=pt-BR
+🔍 **Skyscanner:** https://www.skyscanner.com.br/transporte-aereo/${formData.origem}/${formData.destino}/${formData.dataIda}/${formData.dataVolta}
+🔍 **Decolar:** https://www.decolar.com/voos/${formData.origem}/${formData.destino}/${formData.dataIda}/${formData.dataVolta}/${formData.adultos}/${formData.criancas}/0
+
+Se origem e destino forem a mesma cidade, informe que não há necessidade de voos e sugira transporte terrestre premium.
 
 ### 🏨 HOSPEDAGEM RECOMENDADA
 Analise as MELHORES opções de hospedagem para este perfil, cruzando dados de Booking.com, Airbnb, Google Hotels e TripAdvisor.
@@ -212,6 +227,30 @@ Inclua: voos, hospedagem, alimentação, transporte local, atrações, extras
 
 ### ⚠️ ALERTAS IMPORTANTES
 [Avisos críticos: segurança, saúde, golpes comuns, épocas a evitar, culturais]
+
+### 🆘 CONTATOS DE EMERGÊNCIA
+Liste os principais contatos de emergência específicos para ${formData.destino}:
+
+**Emergências Gerais:**
+- Polícia: [número local]
+- SAMU / Ambulância: [número local]
+- Bombeiros: [número local]
+- Emergência Geral: [número local]
+
+**Embaixada/Consulado Brasileiro** (se destino internacional):
+- Endereço, telefone e email do consulado brasileiro mais próximo
+- Plantão consular 24h (se disponível)
+
+**Hospitais e Pronto-Socorro:**
+- 2-3 hospitais mais próximos da região de hospedagem recomendada com endereço
+
+**Outros Contatos Úteis:**
+- Polícia Turística (se existir no destino)
+- Central de Informações Turísticas
+- Número de emergência do cartão de crédito (orientar a salvar antes de viajar)
+- App de emergência local (se houver)
+
+Formate como lista clara e fácil de copiar para o celular.
 
 Seja específico, use dados reais, seja inspirador. Este é um produto premium.`;
 
