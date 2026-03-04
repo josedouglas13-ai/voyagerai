@@ -1,41 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthPage, { useAuth } from "./auth";
 import TravelAISaaS from "./travel-ai-saas";
+import { createClient } from "@supabase/supabase-js";
 
-// ─────────────────────────────────────────────
-// App principal — gerencia auth + rotas
-// ─────────────────────────────────────────────
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+const ADMIN_EMAIL = "josedouglas13@gmail.com"; // seu email de admin
+
 export default function App() {
   const { user, loading, signOut } = useAuth();
-
   if (loading) return <LoadingScreen />;
   if (!user) return <AuthPage onAuthSuccess={() => {}} />;
   return <Dashboard user={user} onSignOut={signOut} />;
 }
 
-// ─────────────────────────────────────────────
-// Dashboard do usuário autenticado
-// ─────────────────────────────────────────────
 function Dashboard({ user, onSignOut }) {
-  const [view, setView] = useState("home"); // home | newPlan
+  const [view, setView] = useState("home");
+  const isAdmin = user.email === ADMIN_EMAIL;
+
+  const navItems = [
+    { id: "home", icon: "🏠", label: "Início" },
+    { id: "newPlan", icon: "✈️", label: "Novo Plano" },
+    { id: "history", icon: "📋", label: "Meus Planos" },
+    { id: "account", icon: "👤", label: "Minha Conta" },
+    ...(isAdmin ? [{ id: "admin", icon: "⚙️", label: "Admin" }] : []),
+  ];
 
   return (
     <div style={s.root}>
       <style>{css}</style>
-
-      {/* Sidebar */}
       <aside style={s.sidebar}>
         <div style={s.sidebarLogo}>
           ✈ VOYAGER<span style={{ color: "#C8A96E" }}>AI</span>
         </div>
-
         <nav style={s.nav}>
-          {[
-            { id: "home", icon: "🏠", label: "Início" },
-            { id: "newPlan", icon: "✈️", label: "Novo Plano" },
-            { id: "history", icon: "📋", label: "Meus Planos" },
-            { id: "account", icon: "👤", label: "Minha Conta" },
-          ].map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.id}
               style={{ ...s.navItem, ...(view === item.id ? s.navItemActive : {}) }}
@@ -46,61 +48,52 @@ function Dashboard({ user, onSignOut }) {
             </button>
           ))}
         </nav>
-
         <div style={s.sidebarFooter}>
           <div style={s.userInfo}>
             <div style={s.userAvatar}>
               {(user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase()}
             </div>
             <div>
-              <div style={s.userName}>
-                {user.user_metadata?.full_name || "Viajante"}
-              </div>
+              <div style={s.userName}>{user.user_metadata?.full_name || "Viajante"}</div>
               <div style={s.userEmail}>{user.email}</div>
             </div>
           </div>
-          <button style={s.signOutBtn} onClick={onSignOut}>
-            Sair
-          </button>
+          <button style={s.signOutBtn} onClick={onSignOut}>Sair</button>
         </div>
       </aside>
-
-      {/* Main content */}
       <main style={s.main}>
         {view === "home" && <HomeView user={user} setView={setView} />}
-        {view === "newPlan" && <NewPlanView />}
-        {view === "history" && <HistoryView />}
+        {view === "newPlan" && <TravelAISaaS user={user} onPlanSaved={() => setView("history")} />}
+        {view === "history" && <HistoryView user={user} />}
         {view === "account" && <AccountView user={user} />}
+        {view === "admin" && isAdmin && <AdminView />}
       </main>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// Views
-// ─────────────────────────────────────────────
 function HomeView({ user, setView }) {
+  const [stats, setStats] = useState({ total: 0 });
   const name = user.user_metadata?.full_name?.split(" ")[0] || "Viajante";
+
+  useEffect(() => {
+    supabase.from("planos").select("id", { count: "exact" }).eq("user_id", user.id)
+      .then(({ count }) => setStats({ total: count || 0 }));
+  }, [user.id]);
+
   return (
     <div style={s.view}>
       <div style={s.welcomeHero}>
         <div style={s.welcomeOrb} />
-        <h1 style={s.welcomeTitle}>
-          Olá, {name} ✈️
-        </h1>
-        <p style={s.welcomeText}>
-          Pronto para planejar sua próxima aventura? Nossa IA cria roteiros personalizados em minutos.
-        </p>
-        <button style={s.ctaBtn} onClick={() => setView("newPlan")}>
-          Criar Novo Plano →
-        </button>
+        <h1 style={s.welcomeTitle}>Olá, {name} ✈️</h1>
+        <p style={s.welcomeText}>Pronto para planejar sua próxima aventura? Nossa IA cria roteiros personalizados em minutos.</p>
+        <button style={s.ctaBtn} onClick={() => setView("newPlan")}>Criar Novo Plano →</button>
       </div>
-
       <div style={s.statsGrid}>
         {[
-          { icon: "🗺️", label: "Planos Gerados", value: "0" },
-          { icon: "🌍", label: "Países Visitados", value: "0" },
-          { icon: "✈️", label: "KM Planejados", value: "0" },
+          { icon: "🗺️", label: "Planos Gerados", value: stats.total },
+          { icon: "🌍", label: "Países Visitados", value: "–" },
+          { icon: "✈️", label: "Viagens Planejadas", value: stats.total },
         ].map((stat) => (
           <div key={stat.label} style={s.statCard}>
             <span style={{ fontSize: 28 }}>{stat.icon}</span>
@@ -113,25 +106,134 @@ function HomeView({ user, setView }) {
   );
 }
 
-function NewPlanView({ user }) {
+function HistoryView({ user }) {
+  const [planos, setPlanos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    supabase.from("planos").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+      .then(({ data }) => { setPlanos(data || []); setLoading(false); });
+  }, [user.id]);
+
+  if (selected) {
+    return (
+      <div style={s.view}>
+        <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
+        <div style={s.planViewCard}>
+          <h2 style={s.planViewTitle}>{selected.origem} → {selected.destino}</h2>
+          <p style={s.planViewMeta}>{selected.plano_nome} · {new Date(selected.created_at).toLocaleDateString("pt-BR")}</p>
+          <div style={s.planViewContent} dangerouslySetInnerHTML={{ __html: selected.conteudo?.replace(/\n/g, "<br/>") }} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={s.view}>
-      <TravelAISaaS user={user} />
+      <h2 style={s.viewTitle}>Meus Planos</h2>
+      {loading ? (
+        <div style={s.emptyState}><p style={{ color: "#4A4A6A" }}>Carregando...</p></div>
+      ) : planos.length === 0 ? (
+        <div style={s.emptyState}>
+          <span style={{ fontSize: 48 }}>📋</span>
+          <p style={{ color: "#4A4A6A", marginTop: 16 }}>Nenhum plano gerado ainda.</p>
+          <p style={{ color: "#3A3A5A", fontSize: 13, marginTop: 8 }}>Seus planos aparecerão aqui após a geração.</p>
+        </div>
+      ) : (
+        <div style={s.planosList}>
+          {planos.map((plano) => (
+            <div key={plano.id} style={s.planoCard} onClick={() => setSelected(plano)}>
+              <div style={s.planoCardIcon}>✈️</div>
+              <div style={s.planoCardInfo}>
+                <div style={s.planoCardTitle}>{plano.origem} → {plano.destino}</div>
+                <div style={s.planoCardMeta}>
+                  {plano.plano_nome} · {plano.data_ida ? new Date(plano.data_ida).toLocaleDateString("pt-BR") : "–"} a {plano.data_volta ? new Date(plano.data_volta).toLocaleDateString("pt-BR") : "–"}
+                </div>
+                <div style={s.planoCardDate}>{new Date(plano.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</div>
+              </div>
+              <div style={s.planoCardArrow}>→</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function HistoryView() {
+function AdminView() {
+  const [planos, setPlanos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    supabase.from("planos").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => { setPlanos(data || []); setLoading(false); });
+  }, []);
+
+  const filtered = planos.filter(p =>
+    p.user_email?.toLowerCase().includes(search.toLowerCase()) ||
+    p.destino?.toLowerCase().includes(search.toLowerCase()) ||
+    p.origem?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (selected) {
+    return (
+      <div style={s.view}>
+        <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
+        <div style={s.planViewCard}>
+          <p style={{ color: "#C8A96E", fontSize: 12, marginBottom: 8 }}>👤 {selected.user_email}</p>
+          <h2 style={s.planViewTitle}>{selected.origem} → {selected.destino}</h2>
+          <p style={s.planViewMeta}>{selected.plano_nome} · {new Date(selected.created_at).toLocaleDateString("pt-BR")}</p>
+          <div style={s.planViewContent} dangerouslySetInnerHTML={{ __html: selected.conteudo?.replace(/\n/g, "<br/>") }} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={s.view}>
-      <h2 style={s.viewTitle}>Meus Planos</h2>
-      <div style={s.emptyState}>
-        <span style={{ fontSize: 48 }}>📋</span>
-        <p style={{ color: "#4A4A6A", marginTop: 16 }}>Nenhum plano gerado ainda.</p>
-        <p style={{ color: "#3A3A5A", fontSize: 13, marginTop: 8 }}>
-          Seus planos de viagem aparecerão aqui após a geração.
-        </p>
+      <h2 style={s.viewTitle}>⚙️ Painel Admin</h2>
+      <div style={s.adminStats}>
+        <div style={s.adminStatCard}>
+          <span style={s.adminStatNum}>{planos.length}</span>
+          <span style={s.adminStatLabel}>Total de Planos</span>
+        </div>
+        <div style={s.adminStatCard}>
+          <span style={s.adminStatNum}>{new Set(planos.map(p => p.user_id)).size}</span>
+          <span style={s.adminStatLabel}>Clientes Únicos</span>
+        </div>
+        <div style={s.adminStatCard}>
+          <span style={s.adminStatNum}>{planos.filter(p => new Date(p.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length}</span>
+          <span style={s.adminStatLabel}>Últimos 7 dias</span>
+        </div>
       </div>
+
+      <input
+        style={s.searchInput}
+        placeholder="🔍 Buscar por email, origem ou destino..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
+
+      {loading ? (
+        <p style={{ color: "#4A4A6A" }}>Carregando...</p>
+      ) : (
+        <div style={s.planosList}>
+          {filtered.map((plano) => (
+            <div key={plano.id} style={s.planoCard} onClick={() => setSelected(plano)}>
+              <div style={s.planoCardIcon}>✈️</div>
+              <div style={s.planoCardInfo}>
+                <div style={s.planoCardTitle}>{plano.origem} → {plano.destino}</div>
+                <div style={s.planoCardMeta}>{plano.plano_nome} · {plano.user_email}</div>
+                <div style={s.planoCardDate}>{new Date(plano.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+              </div>
+              <div style={s.planoCardArrow}>→</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -141,17 +243,11 @@ function AccountView({ user }) {
     <div style={s.view}>
       <h2 style={s.viewTitle}>Minha Conta</h2>
       <div style={s.accountCard}>
-        <div style={s.accountAvatar}>
-          {(user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase()}
-        </div>
+        <div style={s.accountAvatar}>{(user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase()}</div>
         <div style={s.accountInfo}>
-          <div style={s.accountName}>
-            {user.user_metadata?.full_name || "Usuário"}
-          </div>
+          <div style={s.accountName}>{user.user_metadata?.full_name || "Usuário"}</div>
           <div style={s.accountEmail}>{user.email}</div>
-          <div style={s.accountMeta}>
-            Membro desde {new Date(user.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-          </div>
+          <div style={s.accountMeta}>Membro desde {new Date(user.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</div>
         </div>
       </div>
     </div>
@@ -160,11 +256,11 @@ function AccountView({ user }) {
 
 function LoadingScreen() {
   return (
-    <div style={{ minHeight: "100vh", background: "#080810", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#080810", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
         <div style={{ width: 48, height: 48, border: "2px solid #1A1A2A", borderTopColor: "#C8A96E", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-        <p style={{ color: "#4A4A6A", fontSize: 13, letterSpacing: "0.1em" }}>CARREGANDO...</p>
+        <p style={{ color: "#4A4A6A", fontSize: 13 }}>CARREGANDO...</p>
       </div>
     </div>
   );
@@ -179,227 +275,53 @@ const css = `
 `;
 
 const s = {
-  root: {
-    minHeight: "100vh",
-    background: "#080810",
-    display: "flex",
-    fontFamily: "'DM Sans', sans-serif",
-    color: "#E8E8F0",
-  },
-  sidebar: {
-    width: 240,
-    minHeight: "100vh",
-    background: "linear-gradient(180deg, #0C0C18, #0A0A14)",
-    borderRight: "1px solid #1A1A28",
-    display: "flex",
-    flexDirection: "column",
-    padding: "28px 0",
-    position: "sticky",
-    top: 0,
-    height: "100vh",
-    flexShrink: 0,
-  },
-  sidebarLogo: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 22,
-    fontWeight: 700,
-    color: "#F0E8D0",
-    letterSpacing: "0.12em",
-    padding: "0 24px 28px",
-    borderBottom: "1px solid #1A1A28",
-    marginBottom: 16,
-  },
-  nav: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-    padding: "0 12px",
-    flex: 1,
-  },
-  navItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "11px 16px",
-    background: "transparent",
-    border: "none",
-    borderRadius: 10,
-    color: "#4A4A6A",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 500,
-    fontFamily: "'DM Sans', sans-serif",
-    transition: "all 0.2s",
-    textAlign: "left",
-  },
-  navItemActive: {
-    background: "rgba(200,169,110,0.1)",
-    color: "#C8A96E",
-  },
-  sidebarFooter: {
-    padding: "20px 16px 0",
-    borderTop: "1px solid #1A1A28",
-    marginTop: 16,
-  },
-  userInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
-  },
-  userAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#080810",
-    fontWeight: 700,
-    fontSize: 14,
-    flexShrink: 0,
-  },
-  userName: { fontSize: 13, fontWeight: 600, color: "#C8C8D8" },
-  userEmail: { fontSize: 11, color: "#4A4A6A", marginTop: 1 },
-  signOutBtn: {
-    width: "100%",
-    padding: "9px",
-    background: "transparent",
-    border: "1px solid #1A1A28",
-    borderRadius: 8,
-    color: "#4A4A6A",
-    cursor: "pointer",
-    fontSize: 12,
-    fontFamily: "'DM Sans', sans-serif",
-    transition: "all 0.2s",
-  },
-  main: {
-    flex: 1,
-    overflowY: "auto",
-    padding: "40px",
-  },
-  view: { animation: "fadeUp 0.4s ease", maxWidth: 800 },
-  viewTitle: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 32,
-    color: "#E8D5A3",
-    marginBottom: 28,
-  },
-  welcomeHero: {
-    position: "relative",
-    background: "linear-gradient(145deg, #0F0F1E, #12121F)",
-    border: "1px solid #1E1E30",
-    borderRadius: 20,
-    padding: "40px",
-    marginBottom: 24,
-    overflow: "hidden",
-  },
-  welcomeOrb: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(200,169,110,0.08) 0%, transparent 70%)",
-    right: -50,
-    top: -50,
-    animation: "orbFloat 6s ease-in-out infinite",
-  },
-  welcomeTitle: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 36,
-    color: "#E8D5A3",
-    marginBottom: 12,
-    position: "relative",
-  },
-  welcomeText: {
-    color: "#6A6A8A",
-    fontSize: 15,
-    lineHeight: 1.6,
-    maxWidth: 480,
-    marginBottom: 28,
-    position: "relative",
-  },
-  ctaBtn: {
-    padding: "13px 28px",
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    border: "none",
-    borderRadius: 10,
-    color: "#080810",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-    fontFamily: "'DM Sans', sans-serif",
-    letterSpacing: "0.04em",
-    position: "relative",
-  },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: 16,
-  },
-  statCard: {
-    background: "linear-gradient(145deg, #0F0F1E, #0C0C18)",
-    border: "1px solid #1A1A28",
-    borderRadius: 16,
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 8,
-    textAlign: "center",
-  },
-  statValue: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 32,
-    color: "#C8A96E",
-    fontWeight: 700,
-  },
-  statLabel: { fontSize: 12, color: "#4A4A6A", letterSpacing: "0.05em" },
-  placeholder: {
-    background: "#0F0F1E",
-    border: "1px dashed #2A2A3A",
-    borderRadius: 16,
-    minHeight: 300,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  integrationNote: {
-    textAlign: "center",
-    padding: 40,
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "60px 40px",
-    background: "#0F0F1E",
-    border: "1px solid #1A1A28",
-    borderRadius: 16,
-  },
-  accountCard: {
-    background: "#0F0F1E",
-    border: "1px solid #1A1A28",
-    borderRadius: 16,
-    padding: 28,
-    display: "flex",
-    alignItems: "center",
-    gap: 20,
-  },
-  accountAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#080810",
-    fontWeight: 700,
-    fontSize: 24,
-    flexShrink: 0,
-  },
-  accountInfo: { display: "flex", flexDirection: "column", gap: 4 },
-  accountName: { fontSize: 18, fontWeight: 600, color: "#E8D5A3" },
-  accountEmail: { fontSize: 14, color: "#6A6A8A" },
-  accountMeta: { fontSize: 12, color: "#3A3A5A", marginTop: 4 },
+  root: { minHeight:"100vh", background:"#080810", display:"flex", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0" },
+  sidebar: { width:240, minHeight:"100vh", background:"linear-gradient(180deg,#0C0C18,#0A0A14)", borderRight:"1px solid #1A1A28", display:"flex", flexDirection:"column", padding:"28px 0", position:"sticky", top:0, height:"100vh", flexShrink:0 },
+  sidebarLogo: { fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:700, color:"#F0E8D0", letterSpacing:"0.12em", padding:"0 24px 28px", borderBottom:"1px solid #1A1A28", marginBottom:16 },
+  nav: { display:"flex", flexDirection:"column", gap:4, padding:"0 12px", flex:1 },
+  navItem: { display:"flex", alignItems:"center", gap:12, padding:"11px 16px", background:"transparent", border:"none", borderRadius:10, color:"#4A4A6A", cursor:"pointer", fontSize:13, fontWeight:500, fontFamily:"'DM Sans',sans-serif", textAlign:"left" },
+  navItemActive: { background:"rgba(200,169,110,0.1)", color:"#C8A96E" },
+  sidebarFooter: { padding:"20px 16px 0", borderTop:"1px solid #1A1A28", marginTop:16 },
+  userInfo: { display:"flex", alignItems:"center", gap:10, marginBottom:12 },
+  userAvatar: { width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#8B6914,#C8A96E)", display:"flex", alignItems:"center", justifyContent:"center", color:"#080810", fontWeight:700, fontSize:14, flexShrink:0 },
+  userName: { fontSize:13, fontWeight:600, color:"#C8C8D8" },
+  userEmail: { fontSize:11, color:"#4A4A6A", marginTop:1 },
+  signOutBtn: { width:"100%", padding:"9px", background:"transparent", border:"1px solid #1A1A28", borderRadius:8, color:"#4A4A6A", cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" },
+  main: { flex:1, overflowY:"auto", padding:"40px" },
+  view: { animation:"fadeUp 0.4s ease", maxWidth:860 },
+  viewTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:"#E8D5A3", marginBottom:28 },
+  welcomeHero: { position:"relative", background:"linear-gradient(145deg,#0F0F1E,#12121F)", border:"1px solid #1E1E30", borderRadius:20, padding:"40px", marginBottom:24, overflow:"hidden" },
+  welcomeOrb: { position:"absolute", width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle,rgba(200,169,110,0.08) 0%,transparent 70%)", right:-50, top:-50, animation:"orbFloat 6s ease-in-out infinite" },
+  welcomeTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:36, color:"#E8D5A3", marginBottom:12, position:"relative" },
+  welcomeText: { color:"#6A6A8A", fontSize:15, lineHeight:1.6, maxWidth:480, marginBottom:28, position:"relative" },
+  ctaBtn: { padding:"13px 28px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em", position:"relative" },
+  statsGrid: { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 },
+  statCard: { background:"linear-gradient(145deg,#0F0F1E,#0C0C18)", border:"1px solid #1A1A28", borderRadius:16, padding:"24px", display:"flex", flexDirection:"column", alignItems:"center", gap:8, textAlign:"center" },
+  statValue: { fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:"#C8A96E", fontWeight:700 },
+  statLabel: { fontSize:12, color:"#4A4A6A", letterSpacing:"0.05em" },
+  emptyState: { textAlign:"center", padding:"60px 40px", background:"#0F0F1E", border:"1px solid #1A1A28", borderRadius:16 },
+  planosList: { display:"flex", flexDirection:"column", gap:12 },
+  planoCard: { background:"#0F0F1E", border:"1px solid #1A1A28", borderRadius:14, padding:"20px 24px", display:"flex", alignItems:"center", gap:16, cursor:"pointer", transition:"all 0.2s" },
+  planoCardIcon: { fontSize:28, flexShrink:0 },
+  planoCardInfo: { flex:1 },
+  planoCardTitle: { fontSize:16, fontWeight:700, color:"#E8D5A3", marginBottom:4 },
+  planoCardMeta: { fontSize:13, color:"#6A6A8A", marginBottom:2 },
+  planoCardDate: { fontSize:11, color:"#3A3A5A" },
+  planoCardArrow: { color:"#C8A96E", fontSize:18 },
+  backBtn2: { marginBottom:20, padding:"8px 20px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:8, color:"#6A6A8A", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif" },
+  planViewCard: { background:"#0F0F1E", border:"1px solid #1A1A28", borderRadius:16, padding:32 },
+  planViewTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:28, color:"#E8D5A3", marginBottom:8 },
+  planViewMeta: { fontSize:13, color:"#6A6A8A", marginBottom:24 },
+  planViewContent: { color:"#C8C8D8", fontSize:14, lineHeight:1.8 },
+  adminStats: { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 },
+  adminStatCard: { background:"linear-gradient(145deg,#0F0F1E,#0C0C18)", border:"1px solid #1A1A28", borderRadius:14, padding:"20px", display:"flex", flexDirection:"column", alignItems:"center", gap:6, textAlign:"center" },
+  adminStatNum: { fontFamily:"'Cormorant Garamond',serif", fontSize:36, color:"#C8A96E", fontWeight:700 },
+  adminStatLabel: { fontSize:12, color:"#4A4A6A" },
+  searchInput: { width:"100%", padding:"12px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10, color:"#E8E8F0", fontSize:14, fontFamily:"'DM Sans',sans-serif", marginBottom:16 },
+  accountCard: { background:"#0F0F1E", border:"1px solid #1A1A28", borderRadius:16, padding:28, display:"flex", alignItems:"center", gap:20 },
+  accountAvatar: { width:64, height:64, borderRadius:"50%", background:"linear-gradient(135deg,#8B6914,#C8A96E)", display:"flex", alignItems:"center", justifyContent:"center", color:"#080810", fontWeight:700, fontSize:24, flexShrink:0 },
+  accountInfo: { display:"flex", flexDirection:"column", gap:4 },
+  accountName: { fontSize:18, fontWeight:600, color:"#E8D5A3" },
+  accountEmail: { fontSize:14, color:"#6A6A8A" },
+  accountMeta: { fontSize:12, color:"#3A3A5A", marginTop:4 },
 };
