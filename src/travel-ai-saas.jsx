@@ -166,7 +166,33 @@ ENTREGUE OBRIGATORIAMENTE (em Markdown formatado):
 Inclua alternativa econômica e alternativa conforto.
 
 ### 🏨 HOSPEDAGEM RECOMENDADA
-[3 opções: econômica, melhor custo-benefício e premium, com bairro, preço/noite e por que escolher]
+Analise as MELHORES opções de hospedagem para este perfil, cruzando dados de Booking.com, Airbnb, Google Hotels e TripAdvisor.
+
+Para cada opção, apresente:
+- Nome, tipo e bairro
+- Preço por noite e total do período
+- Nota média agregada das plataformas (mín. 8.0/10)
+- Índice de Localização (1–10): proximidade aos pontos de interesse
+- Índice de Economia (1–10): relação ao orçamento informado
+- Índice de Valor: [(Nota × 0,4) + (Localização × 0,3) + (Economia × 0,3)]
+- Ponto Forte Principal
+- Ponto de Atenção
+- Diferencial Exclusivo
+- Política de cancelamento
+
+Apresente em tabela ordenada pelo Índice de Valor (maior → menor):
+| # | Nome | Tipo | Preço/Noite | Preço Total | Nota | Localização | Economia | Índice de Valor | Cancelamento |
+
+Após a tabela, para cada hotel inclua os links no formato abaixo (substitua NOME_DO_HOTEL pelo nome real sem espaços, usando + entre palavras, e CIDADE pela cidade do destino):
+
+🔍 **Buscar no Booking.com:** https://www.booking.com/search.html?ss=NOME_DO_HOTEL+CIDADE&checkin=${formData.dataIda}&checkout=${formData.dataVolta}&group_adults=${formData.adultos}&group_children=${formData.criancas}
+🗺️ **Ver no Google Maps:** https://www.google.com/maps/search/NOME_DO_HOTEL+CIDADE
+⭐ **Avaliações no TripAdvisor:** https://www.tripadvisor.com.br/Search?q=NOME_DO_HOTEL+CIDADE
+
+Após os links, inclua:
+- ✅ RECOMENDAÇÃO PRINCIPAL: qual escolher e por quê
+- 📊 ALERTA DE PREÇO: se está acima/na média/abaixo da média histórica para o destino e época
+- 📍 Distância de cada opção até o ponto turístico principal (a pé e de carro)
 
 ### 🗓️ ROTEIRO DIÁRIO
 [Dia a dia detalhado com horários, atrações, dicas insider e tempo em cada local]
@@ -284,35 +310,7 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
 
         {planGenerated && !generatingPlan && (
           <div style={styles.planFooter} className="no-print">
-            <button style={styles.downloadBtn} onClick={() => {
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(`
-    <html>
-    <head>
-      <title>VoyagerAI - Plano de Viagem</title>
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: white; color: #1A1A2A; font-family: 'DM Sans', sans-serif; font-size: 11pt; line-height: 1.7; padding: 20mm; }
-        h1 { font-family: 'Cormorant Garamond', serif; font-size: 22pt; color: #7A5010; margin: 16pt 0 8pt; }
-        h2 { font-family: 'Cormorant Garamond', serif; font-size: 15pt; color: #8B6914; margin: 14pt 0 6pt; border-bottom: 1px solid #C8A96E; padding-bottom: 4pt; }
-        h3 { font-size: 12pt; color: #333; margin: 10pt 0 4pt; font-weight: 700; }
-        li { margin: 3pt 0 3pt 16pt; }
-        strong { color: #5A3A00; }
-        table { border-collapse: collapse; width: 100%; margin: 8pt 0; page-break-inside: avoid; }
-        td { padding: 7pt 10pt; border: 1px solid #CCC; font-size: 9pt; color: #1A1A2A; }
-        tr:first-child td { background: #F5EDD0; color: #7A5010; font-weight: 700; }
-        tr:nth-child(even) td { background: #FAFAFA; }
-        p { margin: 4pt 0; }
-      </style>
-    </head>
-    <body>${document.querySelector('.plan-markdown').innerHTML}</body>
-    </html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => { printWindow.print(); printWindow.close(); }, 800);
-}}>⬇ Baixar PDF</button>
+            <button style={styles.downloadBtn} onClick={() => window.print()}>⬇ Baixar PDF</button>
             <button style={styles.newPlanBtn} onClick={() => {
               setPlanGenerated(false);
               setDisplayText("");
@@ -757,3 +755,4 @@ const styles = {
   downloadBtn: { padding:"12px 32px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em" },
   newPlanBtn: { padding:"12px 32px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif" },
 };
+
