@@ -1,4 +1,10 @@
 import { useState, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const STEPS = ["destino", "viajantes", "datas", "orcamento", "preferencias", "pagamento"];
 
@@ -55,7 +61,7 @@ const PLANS = [
   },
 ];
 
-export default function TravelAISaaS() {
+export default function TravelAISaaS({ user, onPlanSaved }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     origem: "",
@@ -275,6 +281,26 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
       setPlanContent(text);
       setPlanGenerated(true);
       setGeneratingPlan(false);
+
+      // Salvar plano no Supabase
+      if (user) {
+        const plan = PLANS.find((p) => p.id === selectedPlan);
+        supabase.from("planos").insert({
+          user_id: user.id,
+          user_email: user.email,
+          origem: formData.origem,
+          destino: formData.destino,
+          data_ida: formData.dataIda || null,
+          data_volta: formData.dataVolta || null,
+          perfil: formData.perfil,
+          adultos: formData.adultos,
+          criancas: formData.criancas,
+          orcamento: formData.orcamento,
+          moeda: formData.moeda,
+          plano_nome: plan?.name || "Plano",
+          conteudo: text,
+        });
+      }
 
       let i = 0;
       setDisplayText("");
