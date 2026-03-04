@@ -772,7 +772,14 @@ const css = `
   .plan-markdown td { padding:6px 12px; border:1px solid #2A2A3A; font-size:0.85rem; }
   .plan-markdown tr:first-child td { background:#1A1A2A; font-weight:600; color:#C8A96E; }
   .plan-markdown table { border-collapse:collapse; width:100%; margin:1rem 0; }
-  @media print { body{background:white} .plan-markdown{color:#111} .plan-markdown h1,.plan-markdown h2{color:#8B6914} }
+  @media print { 
+  body{background:white !important} 
+  .plan-markdown{color:#111 !important}
+  .plan-markdown h1,.plan-markdown h2,.plan-markdown h3{color:#8B6914 !important}
+  .md-h1,.md-h2,.md-h3{color:#8B6914 !important}
+  .md-p, .md-li, td{color:#111 !important}
+  * {color:#111 !important}
+} .plan-markdown h1,.plan-markdown h2{color:#8B6914} }
 `;
 
 const planCSS = `
