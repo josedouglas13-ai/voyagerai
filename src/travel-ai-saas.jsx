@@ -284,7 +284,35 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
 
         {planGenerated && !generatingPlan && (
           <div style={styles.planFooter} className="no-print">
-            <button style={styles.downloadBtn} onClick={() => window.print()}>⬇ Baixar PDF</button>
+            <button style={styles.downloadBtn} onClick={() => {
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+    <head>
+      <title>VoyagerAI - Plano de Viagem</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: white; color: #1A1A2A; font-family: 'DM Sans', sans-serif; font-size: 11pt; line-height: 1.7; padding: 20mm; }
+        h1 { font-family: 'Cormorant Garamond', serif; font-size: 22pt; color: #7A5010; margin: 16pt 0 8pt; }
+        h2 { font-family: 'Cormorant Garamond', serif; font-size: 15pt; color: #8B6914; margin: 14pt 0 6pt; border-bottom: 1px solid #C8A96E; padding-bottom: 4pt; }
+        h3 { font-size: 12pt; color: #333; margin: 10pt 0 4pt; font-weight: 700; }
+        li { margin: 3pt 0 3pt 16pt; }
+        strong { color: #5A3A00; }
+        table { border-collapse: collapse; width: 100%; margin: 8pt 0; page-break-inside: avoid; }
+        td { padding: 7pt 10pt; border: 1px solid #CCC; font-size: 9pt; color: #1A1A2A; }
+        tr:first-child td { background: #F5EDD0; color: #7A5010; font-weight: 700; }
+        tr:nth-child(even) td { background: #FAFAFA; }
+        p { margin: 4pt 0; }
+      </style>
+    </head>
+    <body>${document.querySelector('.plan-markdown').innerHTML}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => { printWindow.print(); printWindow.close(); }, 800);
+}}>⬇ Baixar PDF</button>
             <button style={styles.newPlanBtn} onClick={() => {
               setPlanGenerated(false);
               setDisplayText("");
