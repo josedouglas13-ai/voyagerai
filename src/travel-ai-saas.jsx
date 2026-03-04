@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 
 const STEPS = ["destino", "viajantes", "datas", "orcamento", "preferencias", "pagamento"];
 
@@ -55,20 +55,6 @@ const PLANS = [
   },
 ];
 
-const typewriter = (text, setter, speed = 12) => {
-  let i = 0;
-  setter("");
-  const interval = setInterval(() => {
-    if (i < text.length) {
-      setter((prev) => prev + text[i]);
-      i++;
-    } else {
-      clearInterval(interval);
-    }
-  }, speed);
-  return interval;
-};
-
 export default function TravelAISaaS() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -86,7 +72,7 @@ export default function TravelAISaaS() {
     prioridade: "custo_beneficio",
   });
   const [selectedPlan, setSelectedPlan] = useState("premium");
-  const [paymentStep, setPaymentStep] = useState("select"); // select | checkout | processing | done
+  const [paymentStep, setPaymentStep] = useState("select");
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [planContent, setPlanContent] = useState("");
   const [planGenerated, setPlanGenerated] = useState(false);
@@ -94,8 +80,6 @@ export default function TravelAISaaS() {
   const [cardData, setCardData] = useState({ number: "", name: "", expiry: "", cvv: "" });
   const [errors, setErrors] = useState({});
   const planRef = useRef(null);
-
-  const stepIndex = STEPS.indexOf(STEPS[currentStep]);
 
   const update = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -209,11 +193,11 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-  "Content-Type": "application/json",
-  "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true",
-},
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 8000,
@@ -227,7 +211,6 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
       setPlanGenerated(true);
       setGeneratingPlan(false);
 
-      // Typewriter effect
       let i = 0;
       setDisplayText("");
       const interval = setInterval(() => {
@@ -238,7 +221,7 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
         } else {
           clearInterval(interval);
         }
-      }, 8);
+      }, 5);
     } catch (err) {
       setGeneratingPlan(false);
       setPlanContent("Erro ao conectar com a IA. Verifique sua conexão.");
@@ -268,21 +251,18 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
     return Math.ceil((new Date(formData.dataVolta) - new Date(formData.dataIda)) / (1000 * 60 * 60 * 24));
   };
 
-  // If plan is generated, show plan page
+  // Plan page
   if (planGenerated || generatingPlan) {
     return (
       <div style={styles.planPage}>
         <style>{planCSS}</style>
+
         <div style={styles.planHeader}>
           <div style={styles.planHeaderInner}>
             <div style={styles.planLogo}>✈ VOYAGER<span style={{ color: "#C8A96E" }}>AI</span></div>
             <div style={styles.planMeta}>
-              <span style={styles.planBadge}>
-                {PLANS.find((p) => p.id === selectedPlan)?.name}
-              </span>
-              <span style={styles.planRoute}>
-                {formData.origem} → {formData.destino}
-              </span>
+              <span style={styles.planBadge}>{PLANS.find((p) => p.id === selectedPlan)?.name}</span>
+              <span style={styles.planRoute}>{formData.origem} → {formData.destino}</span>
             </div>
           </div>
         </div>
@@ -296,42 +276,23 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
             </div>
           ) : (
             <div style={styles.planContent}>
-              <div
-                className="plan-markdown"
-                dangerouslySetInnerHTML={{ __html: formatMarkdown(displayText) }}
-              />
-              {displayText.length < planContent.length && (
-                <span style={styles.cursor}>▊</span>
-              )}
+              <div className="plan-markdown" dangerouslySetInnerHTML={{ __html: formatMarkdown(displayText) }} />
+              {displayText.length < planContent.length && <span style={styles.cursor}>▊</span>}
             </div>
           )}
         </div>
 
         {planGenerated && !generatingPlan && (
-          <div style={styles.planFooter}>
-            <button
-              style={styles.downloadBtn}
-              onClick={() => window.print()}
-            >
-              ⬇ Baixar PDF
-            </button>
-            <button
-              style={styles.newPlanBtn}
-              onClick={() => {
-                setPlanGenerated(false);
-                setDisplayText("");
-                setPlanContent("");
-                setCurrentStep(0);
-                setPaymentStep("select");
-                setFormData({
-                  origem: "", destino: "", perfil: "casal", adultos: 2,
-                  criancas: 0, dataIda: "", dataVolta: "", orcamento: "",
-                  moeda: "BRL", interesses: [], restricoes: "", prioridade: "custo_beneficio",
-                });
-              }}
-            >
-              + Novo Plano
-            </button>
+          <div style={styles.planFooter} className="no-print">
+            <button style={styles.downloadBtn} onClick={() => window.print()}>⬇ Baixar PDF</button>
+            <button style={styles.newPlanBtn} onClick={() => {
+              setPlanGenerated(false);
+              setDisplayText("");
+              setPlanContent("");
+              setCurrentStep(0);
+              setPaymentStep("select");
+              setFormData({ origem: "", destino: "", perfil: "casal", adultos: 2, criancas: 0, dataIda: "", dataVolta: "", orcamento: "", moeda: "BRL", interesses: [], restricoes: "", prioridade: "custo_beneficio" });
+            }}>+ Novo Plano</button>
           </div>
         )}
       </div>
@@ -365,47 +326,26 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
           {paymentStep === "select" && (
             <div style={styles.plansWrap}>
               <h2 style={styles.sectionTitle}>Escolha seu plano</h2>
-              <p style={styles.sectionSub}>
-                {formData.origem} → <strong>{formData.destino}</strong> · {getDias() || "?"} dias
-              </p>
+              <p style={styles.sectionSub}>{formData.origem} → <strong>{formData.destino}</strong> · {getDias() || "?"} dias</p>
               <div style={styles.plansGrid}>
                 {PLANS.map((plan) => (
-                  <div
-                    key={plan.id}
-                    style={{
-                      ...styles.planCard,
-                      ...(selectedPlan === plan.id ? styles.planCardSelected : {}),
-                      ...(plan.highlight ? styles.planCardHighlight : {}),
-                    }}
-                    onClick={() => setSelectedPlan(plan.id)}
-                  >
+                  <div key={plan.id} style={{ ...styles.planCard, ...(selectedPlan === plan.id ? styles.planCardSelected : {}), ...(plan.highlight ? styles.planCardHighlight : {}) }} onClick={() => setSelectedPlan(plan.id)}>
                     {plan.highlight && <div style={styles.planBadgeTop}>MAIS POPULAR</div>}
                     <div style={{ ...styles.planPrice, color: plan.color }}>{plan.price}</div>
                     <div style={styles.planName}>{plan.name}</div>
                     <div style={styles.planDesc}>{plan.desc}</div>
                     <ul style={styles.planFeatures}>
                       {plan.features.map((f, i) => (
-                        <li key={i} style={styles.planFeature}>
-                          <span style={{ color: plan.color }}>✓</span> {f}
-                        </li>
+                        <li key={i} style={styles.planFeature}><span style={{ color: plan.color }}>✓</span> {f}</li>
                       ))}
                     </ul>
-                    <button
-                      style={{
-                        ...styles.selectPlanBtn,
-                        background: selectedPlan === plan.id ? plan.color : "transparent",
-                        borderColor: plan.color,
-                        color: selectedPlan === plan.id ? "#0A0A0F" : plan.color,
-                      }}
-                    >
+                    <button style={{ ...styles.selectPlanBtn, background: selectedPlan === plan.id ? plan.color : "transparent", borderColor: plan.color, color: selectedPlan === plan.id ? "#0A0A0F" : plan.color }}>
                       {selectedPlan === plan.id ? "✓ Selecionado" : "Selecionar"}
                     </button>
                   </div>
                 ))}
               </div>
-              <button style={styles.proceedBtn} onClick={() => setPaymentStep("checkout")}>
-                Continuar para Pagamento →
-              </button>
+              <button style={styles.proceedBtn} onClick={() => setPaymentStep("checkout")}>Continuar para Pagamento →</button>
             </div>
           )}
 
@@ -413,21 +353,11 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
             <div style={styles.checkoutWrap}>
               <div style={styles.checkoutSummary}>
                 <h3 style={styles.summaryTitle}>Resumo do Pedido</h3>
-                <div style={styles.summaryRow}>
-                  <span>{PLANS.find((p) => p.id === selectedPlan)?.name}</span>
-                  <span style={{ color: "#C8A96E" }}>{PLANS.find((p) => p.id === selectedPlan)?.price}</span>
-                </div>
-                <div style={styles.summaryRow}>
-                  <span>Destino</span>
-                  <span>{formData.destino}</span>
-                </div>
-                <div style={styles.summaryRow}>
-                  <span>Duração</span>
-                  <span>{getDias() || "?"} dias</span>
-                </div>
+                <div style={styles.summaryRow}><span>{PLANS.find((p) => p.id === selectedPlan)?.name}</span><span style={{ color: "#C8A96E" }}>{PLANS.find((p) => p.id === selectedPlan)?.price}</span></div>
+                <div style={styles.summaryRow}><span>Destino</span><span>{formData.destino}</span></div>
+                <div style={styles.summaryRow}><span>Duração</span><span>{getDias() || "?"} dias</span></div>
                 <div style={{ ...styles.summaryRow, borderTop: "1px solid #2A2A3A", paddingTop: 12, fontWeight: 700 }}>
-                  <span>Total</span>
-                  <span style={{ color: "#C8A96E", fontSize: 20 }}>{PLANS.find((p) => p.id === selectedPlan)?.price}</span>
+                  <span>Total</span><span style={{ color: "#C8A96E", fontSize: 20 }}>{PLANS.find((p) => p.id === selectedPlan)?.price}</span>
                 </div>
               </div>
 
@@ -435,67 +365,28 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
                 <h3 style={styles.summaryTitle}>Dados do Cartão</h3>
                 <div style={styles.cardPreview}>
                   <div style={styles.cardChip}>💳</div>
-                  <div style={styles.cardNumber}>
-                    {cardData.number ? cardData.number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ••••"}
-                  </div>
-                  <div style={styles.cardBottom}>
-                    <span>{cardData.name || "NOME DO TITULAR"}</span>
-                    <span>{cardData.expiry || "MM/AA"}</span>
-                  </div>
+                  <div style={styles.cardNumber}>{cardData.number ? cardData.number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ••••"}</div>
+                  <div style={styles.cardBottom}><span>{cardData.name || "NOME DO TITULAR"}</span><span>{cardData.expiry || "MM/AA"}</span></div>
                 </div>
-
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Número do Cartão</label>
-                  <input
-                    style={styles.input}
-                    placeholder="0000 0000 0000 0000"
-                    maxLength={19}
-                    value={cardData.number}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, "").slice(0, 16);
-                      setCardData((p) => ({ ...p, number: v }));
-                    }}
-                  />
+                  <input style={styles.input} placeholder="0000 0000 0000 0000" maxLength={19} value={cardData.number} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 16); setCardData((p) => ({ ...p, number: v })); }} />
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Nome no Cartão</label>
-                  <input
-                    style={styles.input}
-                    placeholder="Como aparece no cartão"
-                    value={cardData.name}
-                    onChange={(e) => setCardData((p) => ({ ...p, name: e.target.value.toUpperCase() }))}
-                  />
+                  <input style={styles.input} placeholder="Como aparece no cartão" value={cardData.name} onChange={(e) => setCardData((p) => ({ ...p, name: e.target.value.toUpperCase() }))} />
                 </div>
                 <div style={{ display: "flex", gap: 12 }}>
                   <div style={{ ...styles.formGroup, flex: 1 }}>
                     <label style={styles.label}>Validade</label>
-                    <input
-                      style={styles.input}
-                      placeholder="MM/AA"
-                      maxLength={5}
-                      value={cardData.expiry}
-                      onChange={(e) => {
-                        let v = e.target.value.replace(/\D/g, "");
-                        if (v.length >= 2) v = v.slice(0, 2) + "/" + v.slice(2, 4);
-                        setCardData((p) => ({ ...p, expiry: v }));
-                      }}
-                    />
+                    <input style={styles.input} placeholder="MM/AA" maxLength={5} value={cardData.expiry} onChange={(e) => { let v = e.target.value.replace(/\D/g, ""); if (v.length >= 2) v = v.slice(0, 2) + "/" + v.slice(2, 4); setCardData((p) => ({ ...p, expiry: v })); }} />
                   </div>
                   <div style={{ ...styles.formGroup, flex: 1 }}>
                     <label style={styles.label}>CVV</label>
-                    <input
-                      style={styles.input}
-                      placeholder="•••"
-                      maxLength={4}
-                      type="password"
-                      value={cardData.cvv}
-                      onChange={(e) => setCardData((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                    />
+                    <input style={styles.input} placeholder="•••" maxLength={4} type="password" value={cardData.cvv} onChange={(e) => setCardData((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))} />
                   </div>
                 </div>
-                <button style={styles.payBtn} onClick={handlePayment}>
-                  🔒 Pagar {PLANS.find((p) => p.id === selectedPlan)?.price} e Gerar Plano
-                </button>
+                <button style={styles.payBtn} onClick={handlePayment}>🔒 Pagar {PLANS.find((p) => p.id === selectedPlan)?.price} e Gerar Plano</button>
                 <p style={styles.secureText}>🔐 Pagamento 100% seguro · SSL · PCI DSS</p>
               </div>
             </div>
@@ -525,9 +416,7 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
           <div style={styles.progressSteps}>
             {STEPS.map((s, i) => (
               <div key={s} style={{ ...styles.progressStep, ...(i <= currentStep ? styles.progressStepActive : {}) }}>
-                <div style={{ ...styles.progressDot, ...(i <= currentStep ? styles.progressDotActive : {}) }}>
-                  {i < currentStep ? "✓" : i + 1}
-                </div>
+                <div style={{ ...styles.progressDot, ...(i <= currentStep ? styles.progressDotActive : {}) }}>{i < currentStep ? "✓" : i + 1}</div>
                 <span style={styles.progressLabel}>{STEP_LABELS[s]}</span>
               </div>
             ))}
@@ -541,22 +430,12 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
               <p style={styles.stepSubtitle}>Informe sua cidade de origem e o destino dos sonhos</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Cidade de Origem</label>
-                <input
-                  style={{ ...styles.input, ...(errors.origem ? styles.inputError : {}) }}
-                  placeholder="Ex: São Paulo, SP"
-                  value={formData.origem}
-                  onChange={(e) => update("origem", e.target.value)}
-                />
+                <input style={{ ...styles.input, ...(errors.origem ? styles.inputError : {}) }} placeholder="Ex: São Paulo, SP" value={formData.origem} onChange={(e) => update("origem", e.target.value)} />
                 {errors.origem && <span style={styles.error}>{errors.origem}</span>}
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Destino</label>
-                <input
-                  style={{ ...styles.input, ...(errors.destino ? styles.inputError : {}) }}
-                  placeholder="Ex: Paris, França"
-                  value={formData.destino}
-                  onChange={(e) => update("destino", e.target.value)}
-                />
+                <input style={{ ...styles.input, ...(errors.destino ? styles.inputError : {}) }} placeholder="Ex: Paris, França" value={formData.destino} onChange={(e) => update("destino", e.target.value)} />
                 {errors.destino && <span style={styles.error}>{errors.destino}</span>}
               </div>
             </div>
@@ -569,22 +448,9 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
               <div style={styles.formGroup}>
                 <label style={styles.label}>Perfil da Viagem</label>
                 <div style={styles.profileGrid}>
-                  {[
-                    { id: "solo", label: "Solo", icon: "🧳" },
-                    { id: "casal", label: "Casal", icon: "💑" },
-                    { id: "familia", label: "Família", icon: "👨‍👩‍👧‍👦" },
-                    { id: "amigos", label: "Amigos", icon: "🎉" },
-                  ].map((p) => (
-                    <button
-                      key={p.id}
-                      style={{
-                        ...styles.profileBtn,
-                        ...(formData.perfil === p.id ? styles.profileBtnActive : {}),
-                      }}
-                      onClick={() => update("perfil", p.id)}
-                    >
-                      <span style={{ fontSize: 28 }}>{p.icon}</span>
-                      <span>{p.label}</span>
+                  {[{ id: "solo", label: "Solo", icon: "🧳" }, { id: "casal", label: "Casal", icon: "💑" }, { id: "familia", label: "Família", icon: "👨‍👩‍👧‍👦" }, { id: "amigos", label: "Amigos", icon: "🎉" }].map((p) => (
+                    <button key={p.id} style={{ ...styles.profileBtn, ...(formData.perfil === p.id ? styles.profileBtnActive : {}) }} onClick={() => update("perfil", p.id)}>
+                      <span style={{ fontSize: 28 }}>{p.icon}</span><span>{p.label}</span>
                     </button>
                   ))}
                 </div>
@@ -617,32 +483,16 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
               <div style={{ display: "flex", gap: 16 }}>
                 <div style={{ ...styles.formGroup, flex: 1 }}>
                   <label style={styles.label}>Data de Ida</label>
-                  <input
-                    type="date"
-                    style={{ ...styles.input, ...(errors.dataIda ? styles.inputError : {}) }}
-                    value={formData.dataIda}
-                    min={new Date().toISOString().split("T")[0]}
-                    onChange={(e) => update("dataIda", e.target.value)}
-                  />
+                  <input type="date" style={{ ...styles.input, ...(errors.dataIda ? styles.inputError : {}) }} value={formData.dataIda} min={new Date().toISOString().split("T")[0]} onChange={(e) => update("dataIda", e.target.value)} />
                   {errors.dataIda && <span style={styles.error}>{errors.dataIda}</span>}
                 </div>
                 <div style={{ ...styles.formGroup, flex: 1 }}>
                   <label style={styles.label}>Data de Volta</label>
-                  <input
-                    type="date"
-                    style={{ ...styles.input, ...(errors.dataVolta ? styles.inputError : {}) }}
-                    value={formData.dataVolta}
-                    min={formData.dataIda || new Date().toISOString().split("T")[0]}
-                    onChange={(e) => update("dataVolta", e.target.value)}
-                  />
+                  <input type="date" style={{ ...styles.input, ...(errors.dataVolta ? styles.inputError : {}) }} value={formData.dataVolta} min={formData.dataIda || new Date().toISOString().split("T")[0]} onChange={(e) => update("dataVolta", e.target.value)} />
                   {errors.dataVolta && <span style={styles.error}>{errors.dataVolta}</span>}
                 </div>
               </div>
-              {getDias() && (
-                <div style={styles.diasBadge}>
-                  🗓️ <strong>{getDias()} dias</strong> de viagem
-                </div>
-              )}
+              {getDias() && <div style={styles.diasBadge}>🗓️ <strong>{getDias()} dias</strong> de viagem</div>}
             </div>
           )}
 
@@ -654,11 +504,7 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
                 <label style={styles.label}>Moeda</label>
                 <div style={styles.moedaToggle}>
                   {["BRL", "USD", "EUR"].map((m) => (
-                    <button
-                      key={m}
-                      style={{ ...styles.moedaBtn, ...(formData.moeda === m ? styles.moedaBtnActive : {}) }}
-                      onClick={() => update("moeda", m)}
-                    >
+                    <button key={m} style={{ ...styles.moedaBtn, ...(formData.moeda === m ? styles.moedaBtnActive : {}) }} onClick={() => update("moeda", m)}>
                       {m === "BRL" ? "R$ Real" : m === "USD" ? "$ Dólar" : "€ Euro"}
                     </button>
                   ))}
@@ -668,32 +514,15 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
                 <label style={styles.label}>Valor Total</label>
                 <div style={styles.inputWrap}>
                   <span style={styles.inputPrefix}>{formData.moeda === "BRL" ? "R$" : formData.moeda === "USD" ? "$" : "€"}</span>
-                  <input
-                    style={{ ...styles.input, ...styles.inputWithPrefix, ...(errors.orcamento ? styles.inputError : {}) }}
-                    placeholder="0,00"
-                    value={formData.orcamento}
-                    onChange={(e) => update("orcamento", e.target.value.replace(/\D/g, ""))}
-                  />
+                  <input style={{ ...styles.input, ...styles.inputWithPrefix, ...(errors.orcamento ? styles.inputError : {}) }} placeholder="0,00" value={formData.orcamento} onChange={(e) => update("orcamento", e.target.value.replace(/\D/g, ""))} />
                 </div>
                 {errors.orcamento && <span style={styles.error}>{errors.orcamento}</span>}
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Prioridade</label>
                 <div style={styles.prioridadeGrid}>
-                  {[
-                    { id: "economia", label: "Máxima Economia", icon: "💡" },
-                    { id: "custo_beneficio", label: "Custo-Benefício", icon: "⚖️" },
-                    { id: "conforto", label: "Conforto", icon: "✨" },
-                    { id: "luxo", label: "Luxo Total", icon: "👑" },
-                  ].map((p) => (
-                    <button
-                      key={p.id}
-                      style={{
-                        ...styles.prioridadeBtn,
-                        ...(formData.prioridade === p.id ? styles.prioridadeBtnActive : {}),
-                      }}
-                      onClick={() => update("prioridade", p.id)}
-                    >
+                  {[{ id: "economia", label: "Máxima Economia", icon: "💡" }, { id: "custo_beneficio", label: "Custo-Benefício", icon: "⚖️" }, { id: "conforto", label: "Conforto", icon: "✨" }, { id: "luxo", label: "Luxo Total", icon: "👑" }].map((p) => (
+                    <button key={p.id} style={{ ...styles.prioridadeBtn, ...(formData.prioridade === p.id ? styles.prioridadeBtnActive : {}) }} onClick={() => update("prioridade", p.id)}>
                       <span>{p.icon}</span> {p.label}
                     </button>
                   ))}
@@ -708,14 +537,7 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
               <p style={styles.stepSubtitle}>Selecione o que mais combina com você (pode escolher vários)</p>
               <div style={styles.interestsGrid}>
                 {INTERESTS.map((interest) => (
-                  <button
-                    key={interest.id}
-                    style={{
-                      ...styles.interestBtn,
-                      ...(formData.interesses.includes(interest.id) ? styles.interestBtnActive : {}),
-                    }}
-                    onClick={() => toggleInterest(interest.id)}
-                  >
+                  <button key={interest.id} style={{ ...styles.interestBtn, ...(formData.interesses.includes(interest.id) ? styles.interestBtnActive : {}) }} onClick={() => toggleInterest(interest.id)}>
                     <span style={{ fontSize: 22 }}>{interest.icon}</span>
                     <span style={{ fontSize: 12 }}>{interest.label}</span>
                   </button>
@@ -723,23 +545,13 @@ Seja específico, use dados reais, seja inspirador. Este é um produto premium.`
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Restrições ou observações (opcional)</label>
-                <textarea
-                  style={styles.textarea}
-                  placeholder="Ex: vegetariano, mobilidade reduzida, medo de altura, alergia a frutos do mar..."
-                  value={formData.restricoes}
-                  onChange={(e) => update("restricoes", e.target.value)}
-                  rows={3}
-                />
+                <textarea style={styles.textarea} placeholder="Ex: vegetariano, mobilidade reduzida, medo de altura..." value={formData.restricoes} onChange={(e) => update("restricoes", e.target.value)} rows={3} />
               </div>
             </div>
           )}
 
           <div style={styles.navButtons}>
-            {currentStep > 0 && (
-              <button style={styles.backBtn} onClick={prevStep}>
-                ← Voltar
-              </button>
-            )}
+            {currentStep > 0 && <button style={styles.backBtn} onClick={prevStep}>← Voltar</button>}
             <button style={{ ...styles.nextBtn, marginLeft: currentStep === 0 ? "auto" : 0 }} onClick={nextStep}>
               {currentStep === STEPS.length - 2 ? "Ver Planos →" : "Continuar →"}
             </button>
@@ -760,700 +572,160 @@ const css = `
   body { background: #080810; }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(1) saturate(2) hue-rotate(5deg); }
   input::placeholder, textarea::placeholder { color: #4A4A6A; }
-  input:focus, textarea:focus, select:focus { outline: none; border-color: #C8A96E !important; }
+  input:focus, textarea:focus { outline: none; border-color: #C8A96E !important; }
   @keyframes orbPulse { 0%,100%{transform:scale(1);opacity:0.8} 50%{transform:scale(1.15);opacity:1} }
   @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-  .plan-markdown h1 { font-family:'Cormorant Garamond',serif; font-size:2rem; color:#E8D5A3; margin:1.5rem 0 0.75rem; }
-  .plan-markdown h2 { font-family:'Cormorant Garamond',serif; font-size:1.5rem; color:#C8A96E; margin:1.5rem 0 0.5rem; border-bottom:1px solid #2A2A3A; padding-bottom:0.4rem; }
-  .plan-markdown h3 { font-size:1.1rem; color:#F0E8D0; margin:1.2rem 0 0.5rem; font-weight:600; }
-  .plan-markdown li { margin:0.3rem 0 0.3rem 1.2rem; line-height:1.6; }
-  .plan-markdown strong { color:#E8D5A3; }
-  .plan-markdown td { padding:6px 12px; border:1px solid #2A2A3A; font-size:0.85rem; }
-  .plan-markdown tr:first-child td { background:#1A1A2A; font-weight:600; color:#C8A96E; }
-  .plan-markdown table { border-collapse:collapse; width:100%; margin:1rem 0; }
-  @media print { 
-  body{background:white !important} 
-  .plan-markdown{color:#111 !important}
-  .plan-markdown h1,.plan-markdown h2,.plan-markdown h3{color:#8B6914 !important}
-  .md-h1,.md-h2,.md-h3{color:#8B6914 !important}
-  .md-p, .md-li, td{color:#111 !important}
-  * {color:#111 !important}
-} .plan-markdown h1,.plan-markdown h2{color:#8B6914} }
 `;
 
 const planCSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
   * { box-sizing:border-box; margin:0; padding:0; }
   body { background:#080810; }
-  @keyframes orbPulse { 0%,100%{transform:scale(1) rotate(0deg);opacity:0.7} 50%{transform:scale(1.2) rotate(180deg);opacity:1} }
+  @keyframes orbPulse { 0%,100%{transform:scale(1);opacity:0.7} 50%{transform:scale(1.2);opacity:1} }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-  .plan-markdown { color: #C8C8D8; font-family:'DM Sans',sans-serif; font-size:0.95rem; line-height:1.8; }
-  .md-h1 { font-family:'Cormorant Garamond',serif; font-size:2.2rem; color:#E8D5A3; margin:2rem 0 1rem; }
-  .md-h2 { font-family:'Cormorant Garamond',serif; font-size:1.6rem; color:#C8A96E; margin:2rem 0 0.75rem; border-bottom:1px solid #2A2A3A; padding-bottom:0.4rem; }
-  .md-h3 { font-size:1.1rem; color:#F0E8D0; margin:1.5rem 0 0.5rem; font-weight:600; letter-spacing:0.02em; }
-  .md-p { margin:0.75rem 0; }
-  .md-li { margin:0.35rem 0 0.35rem 1.4rem; line-height:1.7; }
-  table { border-collapse:collapse; width:100%; margin:1rem 0; }
-  td { padding:8px 14px; border:1px solid #2A2A3A; font-size:0.88rem; }
-  tr:first-child td { background:#1A1A2A; font-weight:600; color:#C8A96E; }
-  strong { color:#E8D5A3; }
-  @media print { 
-    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    body { background:white; }
-    .plan-markdown { color:#222; }
-    .md-h1 { color:#8B6914; }
-    .md-h2 { color:#8B6914; border-color:#ccc; }
-    .md-h3 { color:#333; }
-    td { border-color:#ccc; }
-    tr:first-child td { background:#f5f0e0; color:#8B6914; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  .plan-markdown { color:#C8C8D8; font-family:'DM Sans',sans-serif; font-size:1rem; line-height:1.9; }
+  .md-h1 { font-family:'Cormorant Garamond',serif; font-size:2.4rem; color:#E8D5A3; margin:2.5rem 0 1rem; line-height:1.2; }
+  .md-h2 { font-family:'Cormorant Garamond',serif; font-size:1.7rem; color:#C8A96E; margin:2.5rem 0 1rem; border-bottom:1px solid #2A2A3A; padding-bottom:0.5rem; }
+  .md-h3 { font-size:1.15rem; color:#F0E8D0; margin:1.8rem 0 0.6rem; font-weight:700; letter-spacing:0.02em; }
+  .md-p { margin:0.8rem 0; color:#C8C8D8; }
+  .md-li { margin:0.4rem 0 0.4rem 1.6rem; line-height:1.8; color:#B8B8C8; }
+  .md-oli span { color:#C8A96E; font-weight:700; margin-right:4px; }
+
+  table { border-collapse:collapse; width:100%; margin:1.2rem 0; border-radius:8px; overflow:hidden; }
+  td { padding:10px 16px; border:1px solid #2A2A3A; font-size:0.9rem; color:#B8B8C8; }
+  tr:first-child td { background:#1A1A2A; font-weight:700; color:#C8A96E; font-size:0.85rem; letter-spacing:0.05em; text-transform:uppercase; }
+  tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
+  strong { color:#E8D5A3; font-weight:600; }
+  em { color:#A8A8C8; font-style:italic; }
+
+  .no-print { }
+
+  @media print {
+    @page { margin: 15mm 20mm; size: A4; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    body { background: white !important; }
+
+    .plan-markdown { color: #1A1A2A !important; font-size: 10pt !important; line-height: 1.6 !important; }
+    .md-h1 { color: #7A5010 !important; font-size: 20pt !important; margin: 16pt 0 8pt !important; page-break-after: avoid; }
+    .md-h2 { color: #8B6914 !important; font-size: 14pt !important; margin: 14pt 0 6pt !important; border-bottom: 1px solid #C8A96E !important; page-break-after: avoid; }
+    .md-h3 { color: #333 !important; font-size: 11pt !important; margin: 10pt 0 4pt !important; page-break-after: avoid; }
+    .md-p { color: #1A1A2A !important; margin: 4pt 0 !important; }
+    .md-li { color: #1A1A2A !important; margin: 2pt 0 2pt 16pt !important; }
+    .md-oli span { color: #8B6914 !important; }
+
+    table { margin: 8pt 0 !important; page-break-inside: avoid; }
+    td { color: #1A1A2A !important; border-color: #CCC !important; padding: 6pt 10pt !important; font-size: 9pt !important; }
+    tr:first-child td { background: #F5EDD0 !important; color: #7A5010 !important; }
+    tr:nth-child(even) td { background: #FAFAFA !important; }
+
+    strong { color: #5A3A00 !important; }
+    em { color: #444 !important; }
+
+    .no-print { display: none !important; }
+
+    div[style*="planHeader"] { display: none !important; }
+    div[style*="planFooter"] { display: none !important; }
+    div[style*="planBody"] { padding: 0 !important; max-width: 100% !important; overflow: visible !important; }
+    div[style*="planPage"] { background: white !important; min-height: auto !important; }
   }
 `;
 
 const styles = {
-  root: {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #080810 0%, #0D0D1A 50%, #0A0A14 100%)",
-    fontFamily: "'DM Sans', sans-serif",
-    color: "#E8E8F0",
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    padding: "20px 16px 40px",
-  },
-  container: {
-    width: "100%",
-    maxWidth: 700,
-    animation: "fadeUp 0.6s ease",
-  },
-  header: {
-    textAlign: "center",
-    padding: "32px 0 24px",
-  },
-  logo: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 36,
-    fontWeight: 700,
-    letterSpacing: "0.15em",
-    color: "#F0E8D0",
-  },
-  tagline: {
-    fontSize: 13,
-    color: "#6A6A8A",
-    letterSpacing: "0.08em",
-    marginTop: 6,
-    textTransform: "uppercase",
-  },
-  progressWrap: {
-    marginBottom: 28,
-  },
-  progressBar: {
-    height: 2,
-    background: "#1A1A2A",
-    borderRadius: 2,
-    marginBottom: 16,
-  },
-  progressFill: {
-    height: "100%",
-    background: "linear-gradient(90deg, #8B6914, #C8A96E, #E8D5A3)",
-    borderRadius: 2,
-    transition: "width 0.4s ease",
-  },
-  progressSteps: {
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  progressStep: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 4,
-    opacity: 0.4,
-    transition: "opacity 0.3s",
-  },
-  progressStepActive: { opacity: 1 },
-  progressDot: {
-    width: 28,
-    height: 28,
-    borderRadius: "50%",
-    background: "#1A1A2A",
-    border: "1px solid #2A2A3A",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 11,
-    fontWeight: 600,
-    color: "#4A4A6A",
-    transition: "all 0.3s",
-  },
-  progressDotActive: {
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    border: "none",
-    color: "#080810",
-  },
-  progressLabel: {
-    fontSize: 10,
-    color: "#4A4A6A",
-    letterSpacing: "0.05em",
-  },
-  formCard: {
-    background: "linear-gradient(145deg, #0F0F1E, #12121F)",
-    border: "1px solid #1E1E30",
-    borderRadius: 20,
-    padding: 36,
-    boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
-  },
-  stepContent: { animation: "fadeUp 0.4s ease" },
-  stepTitle: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 28,
-    fontWeight: 700,
-    color: "#E8D5A3",
-    marginBottom: 8,
-  },
-  stepSubtitle: {
-    fontSize: 14,
-    color: "#6A6A8A",
-    marginBottom: 28,
-    lineHeight: 1.5,
-  },
-  formGroup: { marginBottom: 20 },
-  label: {
-    display: "block",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#8A8AAA",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    marginBottom: 8,
-  },
-  input: {
-    width: "100%",
-    padding: "14px 16px",
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 10,
-    color: "#E8E8F0",
-    fontSize: 15,
-    transition: "border-color 0.2s",
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  inputError: { borderColor: "#8B3030" },
-  error: { fontSize: 12, color: "#C06060", marginTop: 4, display: "block" },
-  inputWrap: { position: "relative" },
-  inputPrefix: {
-    position: "absolute",
-    left: 16,
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: "#C8A96E",
-    fontWeight: 600,
-    fontSize: 15,
-  },
-  inputWithPrefix: { paddingLeft: 48 },
-  textarea: {
-    width: "100%",
-    padding: "14px 16px",
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 10,
-    color: "#E8E8F0",
-    fontSize: 14,
-    resize: "vertical",
-    fontFamily: "'DM Sans', sans-serif",
-    lineHeight: 1.6,
-  },
-  profileGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 10,
-  },
-  profileBtn: {
-    padding: "16px 8px",
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 12,
-    color: "#8A8AAA",
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 13,
-    fontWeight: 500,
-    transition: "all 0.2s",
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  profileBtnActive: {
-    background: "rgba(200,169,110,0.12)",
-    border: "1px solid #C8A96E",
-    color: "#E8D5A3",
-  },
-  counter: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-    padding: "10px 16px",
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 10,
-  },
-  counterBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    background: "#1A1A2A",
-    border: "1px solid #2A2A3A",
-    color: "#C8A96E",
-    fontSize: 18,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontFamily: "'DM Sans', sans-serif",
-    fontWeight: 600,
-  },
-  counterVal: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: "#E8D5A3",
-    minWidth: 30,
-    textAlign: "center",
-  },
-  diasBadge: {
-    marginTop: 16,
-    padding: "12px 20px",
-    background: "rgba(200,169,110,0.1)",
-    border: "1px solid rgba(200,169,110,0.3)",
-    borderRadius: 10,
-    color: "#C8A96E",
-    fontSize: 14,
-    textAlign: "center",
-  },
-  moedaToggle: { display: "flex", gap: 10 },
-  moedaBtn: {
-    flex: 1,
-    padding: "10px",
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 8,
-    color: "#6A6A8A",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 500,
-    fontFamily: "'DM Sans', sans-serif",
-    transition: "all 0.2s",
-  },
-  moedaBtnActive: {
-    background: "rgba(200,169,110,0.12)",
-    border: "1px solid #C8A96E",
-    color: "#E8D5A3",
-  },
-  prioridadeGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-  },
-  prioridadeBtn: {
-    padding: "12px 16px",
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 10,
-    color: "#6A6A8A",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 500,
-    fontFamily: "'DM Sans', sans-serif",
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-    transition: "all 0.2s",
-  },
-  prioridadeBtnActive: {
-    background: "rgba(200,169,110,0.12)",
-    border: "1px solid #C8A96E",
-    color: "#E8D5A3",
-  },
-  interestsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
-    gap: 10,
-    marginBottom: 24,
-  },
-  interestBtn: {
-    padding: "14px 8px",
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 12,
-    color: "#6A6A8A",
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 6,
-    transition: "all 0.2s",
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  interestBtnActive: {
-    background: "rgba(200,169,110,0.12)",
-    border: "1px solid #C8A96E",
-    color: "#E8D5A3",
-  },
-  navButtons: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: 32,
-    gap: 12,
-  },
-  backBtn: {
-    padding: "14px 28px",
-    background: "transparent",
-    border: "1px solid #2A2A3A",
-    borderRadius: 10,
-    color: "#6A6A8A",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 500,
-    fontFamily: "'DM Sans', sans-serif",
-    transition: "all 0.2s",
-  },
-  nextBtn: {
-    padding: "14px 36px",
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    border: "none",
-    borderRadius: 10,
-    color: "#080810",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-    fontFamily: "'DM Sans', sans-serif",
-    letterSpacing: "0.04em",
-    transition: "all 0.2s",
-  },
-  footer: {
-    textAlign: "center",
-    padding: "24px 0",
-    fontSize: 12,
-    color: "#3A3A5A",
-  },
-  // Plans
-  plansWrap: { animation: "fadeUp 0.4s ease" },
-  sectionTitle: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 32,
-    color: "#E8D5A3",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  sectionSub: {
-    textAlign: "center",
-    color: "#6A6A8A",
-    fontSize: 14,
-    marginBottom: 32,
-  },
-  plansGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: 16,
-    marginBottom: 28,
-  },
-  planCard: {
-    background: "#0F0F1E",
-    border: "1px solid #1E1E30",
-    borderRadius: 16,
-    padding: 24,
-    cursor: "pointer",
-    transition: "all 0.3s",
-    position: "relative",
-  },
-  planCardSelected: {
-    border: "1px solid #C8A96E",
-    boxShadow: "0 0 30px rgba(200,169,110,0.15)",
-  },
-  planCardHighlight: {
-    background: "linear-gradient(145deg, #0F0F1E, #141428)",
-  },
-  planBadgeTop: {
-    position: "absolute",
-    top: -10,
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    color: "#080810",
-    fontSize: 9,
-    fontWeight: 700,
-    padding: "4px 12px",
-    borderRadius: 20,
-    letterSpacing: "0.1em",
-    whiteSpace: "nowrap",
-  },
-  planPrice: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 32,
-    fontWeight: 700,
-    marginBottom: 4,
-  },
-  planName: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: "#F0E8D0",
-    marginBottom: 6,
-  },
-  planDesc: {
-    fontSize: 12,
-    color: "#6A6A8A",
-    marginBottom: 16,
-    lineHeight: 1.5,
-  },
-  planFeatures: { listStyle: "none", marginBottom: 20 },
-  planFeature: {
-    fontSize: 12,
-    color: "#8A8AAA",
-    padding: "4px 0",
-    display: "flex",
-    gap: 6,
-    alignItems: "flex-start",
-    lineHeight: 1.4,
-  },
-  selectPlanBtn: {
-    width: "100%",
-    padding: "10px",
-    border: "1px solid",
-    borderRadius: 8,
-    cursor: "pointer",
-    fontSize: 12,
-    fontWeight: 600,
-    fontFamily: "'DM Sans', sans-serif",
-    letterSpacing: "0.05em",
-    transition: "all 0.2s",
-  },
-  proceedBtn: {
-    display: "block",
-    width: "100%",
-    padding: "16px",
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    border: "none",
-    borderRadius: 12,
-    color: "#080810",
-    cursor: "pointer",
-    fontSize: 15,
-    fontWeight: 700,
-    fontFamily: "'DM Sans', sans-serif",
-    letterSpacing: "0.04em",
-  },
-  // Checkout
-  checkoutWrap: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1.5fr",
-    gap: 24,
-    animation: "fadeUp 0.4s ease",
-  },
-  checkoutSummary: {
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 16,
-    padding: 24,
-    height: "fit-content",
-  },
-  summaryTitle: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 20,
-    color: "#E8D5A3",
-    marginBottom: 20,
-  },
-  summaryRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 0",
-    borderBottom: "1px solid #1A1A2A",
-    fontSize: 13,
-    color: "#8A8AAA",
-  },
-  checkoutForm: {
-    background: "#0A0A16",
-    border: "1px solid #1E1E32",
-    borderRadius: 16,
-    padding: 24,
-  },
-  cardPreview: {
-    background: "linear-gradient(135deg, #1A1A2A, #2A2A3A)",
-    borderRadius: 14,
-    padding: "20px 24px",
-    marginBottom: 24,
-    position: "relative",
-    border: "1px solid #3A3A4A",
-  },
-  cardChip: { fontSize: 24, marginBottom: 16 },
-  cardNumber: {
-    fontFamily: "monospace",
-    fontSize: 16,
-    letterSpacing: "0.15em",
-    color: "#E8D5A3",
-    marginBottom: 16,
-  },
-  cardBottom: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: 12,
-    color: "#8A8AAA",
-    letterSpacing: "0.05em",
-  },
-  payBtn: {
-    width: "100%",
-    padding: "16px",
-    background: "linear-gradient(135deg, #1A5C1A, #2A8C2A)",
-    border: "none",
-    borderRadius: 10,
-    color: "#E8F5E8",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-    fontFamily: "'DM Sans', sans-serif",
-    marginTop: 8,
-    letterSpacing: "0.04em",
-  },
-  secureText: {
-    textAlign: "center",
-    fontSize: 11,
-    color: "#4A4A6A",
-    marginTop: 10,
-  },
-  // Processing
-  processingWrap: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 20,
-  },
-  processingOrb: {
-    width: 80,
-    height: 80,
-    borderRadius: "50%",
-    background: "radial-gradient(circle, #C8A96E, #8B6914)",
-    animation: "orbPulse 1.5s ease-in-out infinite",
-    boxShadow: "0 0 40px rgba(200,169,110,0.4)",
-  },
-  processingTitle: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 24,
-    color: "#E8D5A3",
-  },
-  processingText: { fontSize: 14, color: "#6A6A8A" },
-  // Plan Page
-  planPage: {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #080810 0%, #0D0D1A 100%)",
-    fontFamily: "'DM Sans', sans-serif",
-    display: "flex",
-    flexDirection: "column",
-  },
-  planHeader: {
-    background: "rgba(10,10,20,0.95)",
-    borderBottom: "1px solid #1E1E30",
-    padding: "16px 24px",
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
-    backdropFilter: "blur(10px)",
-  },
-  planHeaderInner: {
-    maxWidth: 900,
-    margin: "0 auto",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  planLogo: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 24,
-    fontWeight: 700,
-    color: "#F0E8D0",
-    letterSpacing: "0.1em",
-  },
-  planMeta: { display: "flex", gap: 16, alignItems: "center" },
-  planBadge: {
-    padding: "4px 12px",
-    background: "rgba(200,169,110,0.15)",
-    border: "1px solid rgba(200,169,110,0.4)",
-    borderRadius: 20,
-    color: "#C8A96E",
-    fontSize: 12,
-    fontWeight: 600,
-  },
-  planRoute: { fontSize: 13, color: "#6A6A8A" },
-  planBody: {
-    flex: 1,
-    maxWidth: 900,
-    width: "100%",
-    margin: "0 auto",
-    padding: "40px 24px",
-    overflowY: "auto",
-  },
-  loadingWrap: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "60vh",
-    gap: 20,
-  },
-  loadingOrb: {
-    width: 70,
-    height: 70,
-    borderRadius: "50%",
-    background: "conic-gradient(#C8A96E, #8B6914, #E8D5A3, #C8A96E)",
-    animation: "orbPulse 2s ease-in-out infinite",
-    boxShadow: "0 0 50px rgba(200,169,110,0.3)",
-  },
-  loadingText: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 22,
-    color: "#E8D5A3",
-  },
-  loadingSubtext: { fontSize: 14, color: "#4A4A6A" },
-  planContent: {
-    color: "#C8C8D8",
-    lineHeight: 1.8,
-  },
-  cursor: {
-    display: "inline",
-    color: "#C8A96E",
-    animation: "blink 1s step-end infinite",
-    fontSize: 18,
-  },
-  planFooter: {
-    background: "rgba(10,10,20,0.95)",
-    borderTop: "1px solid #1E1E30",
-    padding: "16px 24px",
-    display: "flex",
-    justifyContent: "center",
-    gap: 16,
-    backdropFilter: "blur(10px)",
-  },
-  downloadBtn: {
-    padding: "12px 32px",
-    background: "linear-gradient(135deg, #8B6914, #C8A96E)",
-    border: "none",
-    borderRadius: 10,
-    color: "#080810",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-    fontFamily: "'DM Sans', sans-serif",
-    letterSpacing: "0.04em",
-  },
-  newPlanBtn: {
-    padding: "12px 32px",
-    background: "transparent",
-    border: "1px solid #2A2A3A",
-    borderRadius: 10,
-    color: "#6A6A8A",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 500,
-    fontFamily: "'DM Sans', sans-serif",
-  },
+  root: { minHeight:"100vh", background:"linear-gradient(135deg,#080810 0%,#0D0D1A 50%,#0A0A14 100%)", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"20px 16px 40px" },
+  container: { width:"100%", maxWidth:700, animation:"fadeUp 0.6s ease" },
+  header: { textAlign:"center", padding:"32px 0 24px" },
+  logo: { fontFamily:"'Cormorant Garamond',serif", fontSize:36, fontWeight:700, letterSpacing:"0.15em", color:"#F0E8D0" },
+  tagline: { fontSize:13, color:"#6A6A8A", letterSpacing:"0.08em", marginTop:6, textTransform:"uppercase" },
+  progressWrap: { marginBottom:28 },
+  progressBar: { height:2, background:"#1A1A2A", borderRadius:2, marginBottom:16 },
+  progressFill: { height:"100%", background:"linear-gradient(90deg,#8B6914,#C8A96E,#E8D5A3)", borderRadius:2, transition:"width 0.4s ease" },
+  progressSteps: { display:"flex", justifyContent:"space-between" },
+  progressStep: { display:"flex", flexDirection:"column", alignItems:"center", gap:4, opacity:0.4, transition:"opacity 0.3s" },
+  progressStepActive: { opacity:1 },
+  progressDot: { width:28, height:28, borderRadius:"50%", background:"#1A1A2A", border:"1px solid #2A2A3A", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:600, color:"#4A4A6A", transition:"all 0.3s" },
+  progressDotActive: { background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", color:"#080810" },
+  progressLabel: { fontSize:10, color:"#4A4A6A", letterSpacing:"0.05em" },
+  formCard: { background:"linear-gradient(145deg,#0F0F1E,#12121F)", border:"1px solid #1E1E30", borderRadius:20, padding:36, boxShadow:"0 24px 80px rgba(0,0,0,0.5)" },
+  stepContent: { animation:"fadeUp 0.4s ease" },
+  stepTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:700, color:"#E8D5A3", marginBottom:8 },
+  stepSubtitle: { fontSize:14, color:"#6A6A8A", marginBottom:28, lineHeight:1.5 },
+  formGroup: { marginBottom:20 },
+  label: { display:"block", fontSize:12, fontWeight:600, color:"#8A8AAA", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:8 },
+  input: { width:"100%", padding:"14px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10, color:"#E8E8F0", fontSize:15, transition:"border-color 0.2s", fontFamily:"'DM Sans',sans-serif" },
+  inputError: { borderColor:"#8B3030" },
+  error: { fontSize:12, color:"#C06060", marginTop:4, display:"block" },
+  inputWrap: { position:"relative" },
+  inputPrefix: { position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", color:"#C8A96E", fontWeight:600, fontSize:15 },
+  inputWithPrefix: { paddingLeft:48 },
+  textarea: { width:"100%", padding:"14px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10, color:"#E8E8F0", fontSize:14, resize:"vertical", fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 },
+  profileGrid: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
+  profileBtn: { padding:"16px 8px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:12, color:"#8A8AAA", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:8, fontSize:13, fontWeight:500, transition:"all 0.2s", fontFamily:"'DM Sans',sans-serif" },
+  profileBtnActive: { background:"rgba(200,169,110,0.12)", border:"1px solid #C8A96E", color:"#E8D5A3" },
+  counter: { display:"flex", alignItems:"center", gap:16, padding:"10px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10 },
+  counterBtn: { width:32, height:32, borderRadius:"50%", background:"#1A1A2A", border:"1px solid #2A2A3A", color:"#C8A96E", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif", fontWeight:600 },
+  counterVal: { fontSize:20, fontWeight:700, color:"#E8D5A3", minWidth:30, textAlign:"center" },
+  diasBadge: { marginTop:16, padding:"12px 20px", background:"rgba(200,169,110,0.1)", border:"1px solid rgba(200,169,110,0.3)", borderRadius:10, color:"#C8A96E", fontSize:14, textAlign:"center" },
+  moedaToggle: { display:"flex", gap:10 },
+  moedaBtn: { flex:1, padding:"10px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:8, color:"#6A6A8A", cursor:"pointer", fontSize:13, fontWeight:500, fontFamily:"'DM Sans',sans-serif", transition:"all 0.2s" },
+  moedaBtnActive: { background:"rgba(200,169,110,0.12)", border:"1px solid #C8A96E", color:"#E8D5A3" },
+  prioridadeGrid: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
+  prioridadeBtn: { padding:"12px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:13, fontWeight:500, fontFamily:"'DM Sans',sans-serif", display:"flex", gap:8, alignItems:"center", transition:"all 0.2s" },
+  prioridadeBtnActive: { background:"rgba(200,169,110,0.12)", border:"1px solid #C8A96E", color:"#E8D5A3" },
+  interestsGrid: { display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10, marginBottom:24 },
+  interestBtn: { padding:"14px 8px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:12, color:"#6A6A8A", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:6, transition:"all 0.2s", fontFamily:"'DM Sans',sans-serif" },
+  interestBtnActive: { background:"rgba(200,169,110,0.12)", border:"1px solid #C8A96E", color:"#E8D5A3" },
+  navButtons: { display:"flex", justifyContent:"space-between", marginTop:32, gap:12 },
+  backBtn: { padding:"14px 28px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif", transition:"all 0.2s" },
+  nextBtn: { padding:"14px 36px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em", transition:"all 0.2s" },
+  footer: { textAlign:"center", padding:"24px 0", fontSize:12, color:"#3A3A5A" },
+  plansWrap: { animation:"fadeUp 0.4s ease" },
+  sectionTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:"#E8D5A3", textAlign:"center", marginBottom:8 },
+  sectionSub: { textAlign:"center", color:"#6A6A8A", fontSize:14, marginBottom:32 },
+  plansGrid: { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:28 },
+  planCard: { background:"#0F0F1E", border:"1px solid #1E1E30", borderRadius:16, padding:24, cursor:"pointer", transition:"all 0.3s", position:"relative" },
+  planCardSelected: { border:"1px solid #C8A96E", boxShadow:"0 0 30px rgba(200,169,110,0.15)" },
+  planCardHighlight: { background:"linear-gradient(145deg,#0F0F1E,#141428)" },
+  planBadgeTop: { position:"absolute", top:-10, left:"50%", transform:"translateX(-50%)", background:"linear-gradient(135deg,#8B6914,#C8A96E)", color:"#080810", fontSize:9, fontWeight:700, padding:"4px 12px", borderRadius:20, letterSpacing:"0.1em", whiteSpace:"nowrap" },
+  planPrice: { fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, marginBottom:4 },
+  planName: { fontSize:14, fontWeight:700, color:"#F0E8D0", marginBottom:6 },
+  planDesc: { fontSize:12, color:"#6A6A8A", marginBottom:16, lineHeight:1.5 },
+  planFeatures: { listStyle:"none", marginBottom:20 },
+  planFeature: { fontSize:12, color:"#8A8AAA", padding:"4px 0", display:"flex", gap:6, alignItems:"flex-start", lineHeight:1.4 },
+  selectPlanBtn: { width:"100%", padding:"10px", border:"1px solid", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:600, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.05em", transition:"all 0.2s" },
+  proceedBtn: { display:"block", width:"100%", padding:"16px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:12, color:"#080810", cursor:"pointer", fontSize:15, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em" },
+  checkoutWrap: { display:"grid", gridTemplateColumns:"1fr 1.5fr", gap:24, animation:"fadeUp 0.4s ease" },
+  checkoutSummary: { background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:16, padding:24, height:"fit-content" },
+  summaryTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:"#E8D5A3", marginBottom:20 },
+  summaryRow: { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #1A1A2A", fontSize:13, color:"#8A8AAA" },
+  checkoutForm: { background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:16, padding:24 },
+  cardPreview: { background:"linear-gradient(135deg,#1A1A2A,#2A2A3A)", borderRadius:14, padding:"20px 24px", marginBottom:24, position:"relative", border:"1px solid #3A3A4A" },
+  cardChip: { fontSize:24, marginBottom:16 },
+  cardNumber: { fontFamily:"monospace", fontSize:16, letterSpacing:"0.15em", color:"#E8D5A3", marginBottom:16 },
+  cardBottom: { display:"flex", justifyContent:"space-between", fontSize:12, color:"#8A8AAA", letterSpacing:"0.05em" },
+  payBtn: { width:"100%", padding:"16px", background:"linear-gradient(135deg,#1A5C1A,#2A8C2A)", border:"none", borderRadius:10, color:"#E8F5E8", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", marginTop:8, letterSpacing:"0.04em" },
+  secureText: { textAlign:"center", fontSize:11, color:"#4A4A6A", marginTop:10 },
+  processingWrap: { minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:20 },
+  processingOrb: { width:80, height:80, borderRadius:"50%", background:"radial-gradient(circle,#C8A96E,#8B6914)", animation:"orbPulse 1.5s ease-in-out infinite", boxShadow:"0 0 40px rgba(200,169,110,0.4)" },
+  processingTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:"#E8D5A3" },
+  processingText: { fontSize:14, color:"#6A6A8A" },
+  planPage: { minHeight:"100vh", background:"linear-gradient(135deg,#080810 0%,#0D0D1A 100%)", fontFamily:"'DM Sans',sans-serif", display:"flex", flexDirection:"column" },
+  planHeader: { background:"rgba(10,10,20,0.95)", borderBottom:"1px solid #1E1E30", padding:"16px 24px", position:"sticky", top:0, zIndex:100, backdropFilter:"blur(10px)" },
+  planHeaderInner: { maxWidth:960, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center" },
+  planLogo: { fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:700, color:"#F0E8D0", letterSpacing:"0.1em" },
+  planMeta: { display:"flex", gap:16, alignItems:"center" },
+  planBadge: { padding:"4px 12px", background:"rgba(200,169,110,0.15)", border:"1px solid rgba(200,169,110,0.4)", borderRadius:20, color:"#C8A96E", fontSize:12, fontWeight:600 },
+  planRoute: { fontSize:13, color:"#6A6A8A" },
+  planBody: { flex:1, maxWidth:960, width:"100%", margin:"0 auto", padding:"48px 32px", overflowY:"auto" },
+  loadingWrap: { display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"60vh", gap:20 },
+  loadingOrb: { width:70, height:70, borderRadius:"50%", background:"conic-gradient(#C8A96E,#8B6914,#E8D5A3,#C8A96E)", animation:"orbPulse 2s ease-in-out infinite", boxShadow:"0 0 50px rgba(200,169,110,0.3)" },
+  loadingText: { fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:"#E8D5A3" },
+  loadingSubtext: { fontSize:14, color:"#4A4A6A" },
+  planContent: { color:"#C8C8D8", lineHeight:1.8, animation:"fadeUp 0.5s ease" },
+  cursor: { display:"inline", color:"#C8A96E", animation:"blink 1s step-end infinite", fontSize:18 },
+  planFooter: { background:"rgba(10,10,20,0.95)", borderTop:"1px solid #1E1E30", padding:"16px 24px", display:"flex", justifyContent:"center", gap:16, backdropFilter:"blur(10px)" },
+  downloadBtn: { padding:"12px 32px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em" },
+  newPlanBtn: { padding:"12px 32px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif" },
 };
