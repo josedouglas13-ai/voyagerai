@@ -297,7 +297,7 @@ CNPJ: 11.915.734/0001-17
       // Salvar plano no Supabase
       if (user) {
         const plan = PLANS.find((p) => p.id === selectedPlan);
-        supabase.from("planos").insert({
+        const { error: saveError } = await supabase.from("planos").insert({
           user_id: user.id,
           user_email: user.email,
           origem: formData.origem,
@@ -312,6 +312,8 @@ CNPJ: 11.915.734/0001-17
           plano_nome: plan?.name || "Plano",
           conteudo: text,
         });
+        if (saveError) console.error("Erro ao salvar plano:", saveError.message);
+        else if (onPlanSaved) onPlanSaved();
       }
 
       let i = 0;
@@ -411,7 +413,7 @@ CNPJ: 11.915.734/0001-17
           </div>
         </div>
 
-        <div style={styles.planBody} ref={planRef}>
+        <div data-plan-body style={styles.planBody} ref={planRef}>
           {generatingPlan ? (
             <div style={styles.loadingWrap}>
               <div style={styles.loadingOrb}></div>
@@ -479,7 +481,7 @@ CNPJ: 11.915.734/0001-17
             <div style={styles.plansWrap}>
               <h2 style={styles.sectionTitle}>Escolha seu plano</h2>
               <p style={styles.sectionSub}>{formData.origem} → <strong>{formData.destino}</strong> · {getDias() || "?"} dias</p>
-              <div style={styles.plansGrid}>
+              <div data-plans-grid style={styles.plansGrid}>
                 {PLANS.map((plan) => (
                   <div key={plan.id} style={{ ...styles.planCard, ...(selectedPlan === plan.id ? styles.planCardSelected : {}), ...(plan.highlight ? styles.planCardHighlight : {}) }} onClick={() => setSelectedPlan(plan.id)}>
                     {plan.highlight && <div style={styles.planBadgeTop}>MAIS POPULAR</div>}
@@ -502,7 +504,7 @@ CNPJ: 11.915.734/0001-17
           )}
 
           {paymentStep === "checkout" && (
-            <div style={styles.checkoutWrap}>
+            <div data-checkout-wrap style={styles.checkoutWrap}>
               <div style={styles.checkoutSummary}>
                 <h3 style={styles.summaryTitle}>Resumo do Pedido</h3>
                 <div style={styles.summaryRow}><span>{PLANS.find((p) => p.id === selectedPlan)?.name}</span><span style={{ color: "#C8A96E" }}>{PLANS.find((p) => p.id === selectedPlan)?.price}</span></div>
@@ -565,7 +567,7 @@ CNPJ: 11.915.734/0001-17
           <div style={styles.progressBar}>
             <div style={{ ...styles.progressFill, width: `${progress}%` }} />
           </div>
-          <div style={styles.progressSteps}>
+          <div data-progress-steps style={styles.progressSteps}>
             {STEPS.map((s, i) => (
               <div key={s} style={{ ...styles.progressStep, ...(i <= currentStep ? styles.progressStepActive : {}) }}>
                 <div style={{ ...styles.progressDot, ...(i <= currentStep ? styles.progressDotActive : {}) }}>{i < currentStep ? "✓" : i + 1}</div>
@@ -575,10 +577,10 @@ CNPJ: 11.915.734/0001-17
           </div>
         </div>
 
-        <div style={styles.formCard}>
+        <div data-form-card style={styles.formCard}>
           {step === "destino" && (
             <div style={styles.stepContent}>
-              <h2 style={styles.stepTitle}>🌍 Para onde vamos?</h2>
+              <h2 data-step-title style={styles.stepTitle}>🌍 Para onde vamos?</h2>
               <p style={styles.stepSubtitle}>Informe sua cidade de origem e o destino dos sonhos</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Cidade de Origem</label>
@@ -599,7 +601,7 @@ CNPJ: 11.915.734/0001-17
               <p style={styles.stepSubtitle}>Nos conte sobre o grupo de viajantes</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Perfil da Viagem</label>
-                <div style={styles.profileGrid}>
+                <div data-profile-grid style={styles.profileGrid}>
                   {[{ id: "solo", label: "Solo", icon: "🧳" }, { id: "casal", label: "Casal", icon: "💑" }, { id: "familia", label: "Família", icon: "👨‍👩‍👧‍👦" }, { id: "amigos", label: "Amigos", icon: "🎉" }].map((p) => (
                     <button key={p.id} style={{ ...styles.profileBtn, ...(formData.perfil === p.id ? styles.profileBtnActive : {}) }} onClick={() => update("perfil", p.id)}>
                       <span style={{ fontSize: 28 }}>{p.icon}</span><span>{p.label}</span>
@@ -654,7 +656,7 @@ CNPJ: 11.915.734/0001-17
               <p style={styles.stepSubtitle}>Informe o orçamento total disponível para a viagem</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Moeda</label>
-                <div style={styles.moedaToggle}>
+                <div data-moeda-toggle style={styles.moedaToggle}>
                   {["BRL", "USD", "EUR"].map((m) => (
                     <button key={m} style={{ ...styles.moedaBtn, ...(formData.moeda === m ? styles.moedaBtnActive : {}) }} onClick={() => update("moeda", m)}>
                       {m === "BRL" ? "R$ Real" : m === "USD" ? "$ Dólar" : "€ Euro"}
@@ -687,7 +689,7 @@ CNPJ: 11.915.734/0001-17
             <div style={styles.stepContent}>
               <h2 style={styles.stepTitle}>🎯 Seus interesses</h2>
               <p style={styles.stepSubtitle}>Selecione o que mais combina com você (pode escolher vários)</p>
-              <div style={styles.interestsGrid}>
+              <div data-interests-grid style={styles.interestsGrid}>
                 {INTERESTS.map((interest) => (
                   <button key={interest.id} style={{ ...styles.interestBtn, ...(formData.interesses.includes(interest.id) ? styles.interestBtnActive : {}) }} onClick={() => toggleInterest(interest.id)}>
                     <span style={{ fontSize: 22 }}>{interest.icon}</span>
@@ -721,12 +723,37 @@ CNPJ: 11.915.734/0001-17
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #080810; }
+  body { background: #080810; overflow-x: hidden; }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(1) saturate(2) hue-rotate(5deg); }
   input::placeholder, textarea::placeholder { color: #4A4A6A; }
   input:focus, textarea:focus { outline: none; border-color: #C8A96E !important; }
   @keyframes orbPulse { 0%,100%{transform:scale(1);opacity:0.8} 50%{transform:scale(1.15);opacity:1} }
   @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+  @media (max-width: 600px) {
+    /* Profile grid: 2x2 */
+    [data-profile-grid] { grid-template-columns: repeat(2,1fr) !important; }
+    /* Interests: 3 cols */
+    [data-interests-grid] { grid-template-columns: repeat(3,1fr) !important; }
+    /* Plans: 1 col */
+    [data-plans-grid] { grid-template-columns: 1fr !important; }
+    /* Checkout: 1 col */
+    [data-checkout-wrap] { grid-template-columns: 1fr !important; }
+    /* Progress steps: smaller */
+    [data-progress-steps] { gap: 2px; }
+    [data-progress-label] { display: none; }
+    /* Form card padding */
+    [data-form-card] { padding: 20px 16px !important; }
+    /* Plan page body */
+    [data-plan-body] { padding: 24px 16px !important; }
+    /* Prioridade grid: 2 cols ok, keep */
+    /* Moeda toggle: wrap */
+    [data-moeda-toggle] { flex-wrap: wrap; }
+    /* Step title smaller */
+    [data-step-title] { font-size: 22px !important; }
+    /* Hero content */
+    [data-hero-content] { padding: 32px 20px !important; }
+  }
 `;
 
 const planCSS = `
@@ -786,7 +813,7 @@ const planCSS = `
 `;
 
 const styles = {
-  root: { minHeight:"100vh", background:"linear-gradient(135deg,#080810 0%,#0D0D1A 50%,#0A0A14 100%)", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"20px 16px 40px" },
+  root: { minHeight:"100vh", background:"linear-gradient(135deg,#080810 0%,#0D0D1A 50%,#0A0A14 100%)", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"20px 16px 40px", overflowX:"hidden", width:"100%" },
   container: { width:"100%", maxWidth:700, animation:"fadeUp 0.6s ease" },
   header: { textAlign:"center", padding:"32px 0 24px" },
   logo: { fontFamily:"'Cormorant Garamond',serif", fontSize:36, fontWeight:700, letterSpacing:"0.15em", color:"#F0E8D0" },
@@ -813,7 +840,7 @@ const styles = {
   inputPrefix: { position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", color:"#C8A96E", fontWeight:600, fontSize:15 },
   inputWithPrefix: { paddingLeft:48 },
   textarea: { width:"100%", padding:"14px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10, color:"#E8E8F0", fontSize:14, resize:"vertical", fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 },
-  profileGrid: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
+  profileGrid: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, "@media(max-width:600px)": {gridTemplateColumns:"repeat(2,1fr)"} },
   profileBtn: { padding:"16px 8px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:12, color:"#8A8AAA", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:8, fontSize:13, fontWeight:500, transition:"all 0.2s", fontFamily:"'DM Sans',sans-serif" },
   profileBtnActive: { background:"rgba(200,169,110,0.12)", border:"1px solid #C8A96E", color:"#E8D5A3" },
   counter: { display:"flex", alignItems:"center", gap:16, padding:"10px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10 },
