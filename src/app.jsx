@@ -73,35 +73,111 @@ function Dashboard({ user, onSignOut }) {
 }
 
 function HomeView({ user, setView }) {
-  const [stats, setStats] = useState({ total: 0 });
+  const [stats, setStats] = useState({ total: 0, lastPlan: null });
   const name = user.user_metadata?.full_name?.split(" ")[0] || "Viajante";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
   useEffect(() => {
-    supabase.from("planos").select("id", { count: "exact" }).eq("user_id", user.id)
-      .then(({ count }) => setStats({ total: count || 0 }));
+    supabase.from("planos").select("*", { count: "exact" }).eq("user_id", user.id)
+      .order("created_at", { ascending: false }).limit(1)
+      .then(({ data, count }) => setStats({ total: count || 0, lastPlan: data?.[0] || null }));
   }, [user.id]);
 
+  const destinations = [
+    { city: "Paris", country: "França", emoji: "🗼", temp: "18°C", tag: "Romance" },
+    { city: "Tóquio", country: "Japão", emoji: "⛩️", temp: "22°C", tag: "Cultura" },
+    { city: "Cancún", country: "México", emoji: "🏖️", temp: "31°C", tag: "Praia" },
+    { city: "Nova York", country: "EUA", emoji: "🗽", temp: "15°C", tag: "Urbano" },
+    { city: "Lisboa", country: "Portugal", emoji: "🎭", temp: "20°C", tag: "História" },
+    { city: "Florianópolis", country: "Brasil", emoji: "🌊", temp: "28°C", tag: "Nacional" },
+  ];
+
   return (
-    <div style={s.view}>
-      <div style={s.welcomeHero}>
-        <div style={s.welcomeOrb} />
-        <h1 style={s.welcomeTitle}>Olá, {name} ✈️</h1>
-        <p style={s.welcomeText}>Pronto para planejar sua próxima aventura? Nossa IA cria roteiros personalizados em minutos.</p>
-        <button style={s.ctaBtn} onClick={() => setView("newPlan")}>Criar Novo Plano →</button>
+    <div style={{ animation: "fadeUp 0.4s ease" }}>
+
+      {/* HERO */}
+      <div style={sh.hero}>
+        <div style={sh.heroOverlay} />
+        <div style={sh.heroContent}>
+          <div style={sh.heroBadge}>{greeting}, {name} ✈️</div>
+          <h1 style={sh.heroTitle}>Para onde vamos<br/>hoje?</h1>
+          <p style={sh.heroSub}>Nossa IA cria seu roteiro completo com voos, hotéis, restaurantes e emergências em minutos.</p>
+          <div style={sh.heroActions}>
+            <button style={sh.heroBtn} onClick={() => setView("newPlan")}>✦ Criar Novo Plano</button>
+            {stats.lastPlan && (
+              <button style={sh.heroBtnSecondary} onClick={() => setView("history")}>
+                Último: {stats.lastPlan.destino} →
+              </button>
+            )}
+          </div>
+        </div>
       </div>
-      <div style={s.statsGrid}>
+
+      {/* STATS */}
+      <div style={sh.statsRow}>
         {[
-          { icon: "🗺️", label: "Planos Gerados", value: stats.total },
-          { icon: "🌍", label: "Países Visitados", value: "–" },
-          { icon: "✈️", label: "Viagens Planejadas", value: stats.total },
+          { icon: "🗺️", label: "Planos Gerados", value: stats.total, color: "#C8A96E" },
+          { icon: "⏱️", label: "Tempo Médio", value: "~2min", color: "#6E9EC8" },
+          { icon: "🌍", label: "Destinos Cobertos", value: "50+", color: "#6EC88A" },
+          { icon: "⭐", label: "Satisfação", value: "98%", color: "#C86E9E" },
         ].map((stat) => (
-          <div key={stat.label} style={s.statCard}>
-            <span style={{ fontSize: 28 }}>{stat.icon}</span>
-            <span style={s.statValue}>{stat.value}</span>
-            <span style={s.statLabel}>{stat.label}</span>
+          <div key={stat.label} style={sh.statCard}>
+            <div style={sh.statIconWrap}>
+              <span style={{ fontSize: 22 }}>{stat.icon}</span>
+            </div>
+            <div>
+              <div style={{ ...sh.statValue, color: stat.color }}>{stat.value}</div>
+              <div style={sh.statLabel}>{stat.label}</div>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* INSPIRAÇÕES */}
+      <div style={sh.section}>
+        <div style={sh.sectionHeader}>
+          <div>
+            <div style={sh.sectionLabel}>✦ Inspirações</div>
+            <h2 style={sh.sectionTitle}>Destinos em alta</h2>
+          </div>
+          <button style={sh.sectionLink} onClick={() => setView("newPlan")}>Planejar viagem →</button>
+        </div>
+        <div style={sh.destGrid}>
+          {destinations.map((d) => (
+            <div key={d.city} style={sh.destCard} onClick={() => setView("newPlan")}>
+              <div style={sh.destEmoji}>{d.emoji}</div>
+              <div style={sh.destTag}>{d.tag}</div>
+              <div style={sh.destCity}>{d.city}</div>
+              <div style={sh.destCountry}>{d.country}</div>
+              <div style={sh.destTemp}>{d.temp}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* QUICK ACTIONS */}
+      <div style={sh.section}>
+        <div style={sh.sectionLabel}>✦ Acesso Rápido</div>
+        <div style={sh.quickGrid}>
+          <div style={sh.quickCard} onClick={() => setView("newPlan")}>
+            <span style={sh.quickIcon}>✈️</span>
+            <div style={sh.quickTitle}>Novo Plano</div>
+            <div style={sh.quickDesc}>Crie um roteiro completo com IA</div>
+          </div>
+          <div style={sh.quickCard} onClick={() => setView("history")}>
+            <span style={sh.quickIcon}>📋</span>
+            <div style={sh.quickTitle}>Meus Planos</div>
+            <div style={sh.quickDesc}>{stats.total} plano{stats.total !== 1 ? "s" : ""} salvo{stats.total !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={sh.quickCard} onClick={() => window.open("https://wa.me/5547996855528", "_blank")}>
+            <span style={sh.quickIcon}>💬</span>
+            <div style={sh.quickTitle}>Falar com Consultor</div>
+            <div style={sh.quickDesc}>WhatsApp Shoppingtur</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
@@ -274,6 +350,40 @@ const css = `
   @keyframes orbFloat { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
 `;
 
+const sh = {
+  hero: { position:"relative", borderRadius:20, overflow:"hidden", minHeight:280, background:"linear-gradient(135deg,#0A0A14 0%,#12102A 50%,#0A1420 100%)", marginBottom:20, display:"flex", alignItems:"flex-end" },
+  heroOverlay: { position:"absolute", inset:0, background:"radial-gradient(ellipse 80% 60% at 70% 50%,rgba(200,169,110,0.12) 0%,transparent 70%)" },
+  heroContent: { position:"relative", padding:"48px 40px", zIndex:1 },
+  heroBadge: { display:"inline-block", padding:"5px 14px", background:"rgba(200,169,110,0.15)", border:"1px solid rgba(200,169,110,0.3)", borderRadius:20, color:"#C8A96E", fontSize:12, fontWeight:600, letterSpacing:"0.06em", marginBottom:16 },
+  heroTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(32px,4vw,52px)", fontWeight:400, color:"#F0E8D0", lineHeight:1.1, marginBottom:12 },
+  heroSub: { fontSize:14, color:"rgba(255,255,255,0.5)", lineHeight:1.7, maxWidth:460, marginBottom:28 },
+  heroActions: { display:"flex", gap:12, flexWrap:"wrap" },
+  heroBtn: { padding:"12px 28px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:8, color:"#080810", cursor:"pointer", fontSize:13, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.05em" },
+  heroBtnSecondary: { padding:"12px 24px", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:8, color:"rgba(255,255,255,0.6)", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif" },
+  statsRow: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:20 },
+  statCard: { background:"#0F0F1E", border:"1px solid #1A1A28", borderRadius:14, padding:"18px 20px", display:"flex", alignItems:"center", gap:14 },
+  statIconWrap: { width:44, height:44, borderRadius:10, background:"rgba(200,169,110,0.08)", border:"1px solid rgba(200,169,110,0.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  statValue: { fontSize:22, fontFamily:"'Cormorant Garamond',serif", fontWeight:700, lineHeight:1 },
+  statLabel: { fontSize:11, color:"#4A4A6A", marginTop:3, letterSpacing:"0.04em" },
+  section: { marginBottom:28 },
+  sectionHeader: { display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:16 },
+  sectionLabel: { fontSize:11, color:"#C8A96E", fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 },
+  sectionTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:"#E8D5A3", fontWeight:400 },
+  sectionLink: { background:"none", border:"none", color:"#6A6A8A", fontSize:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", transition:"color 0.2s" },
+  destGrid: { display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:10 },
+  destCard: { background:"#0F0F1E", border:"1px solid #1A1A28", borderRadius:14, padding:"20px 16px", cursor:"pointer", transition:"all 0.2s", textAlign:"center", position:"relative", overflow:"hidden" },
+  destEmoji: { fontSize:32, marginBottom:10 },
+  destTag: { fontSize:9, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"#C8A96E", background:"rgba(200,169,110,0.1)", padding:"2px 8px", borderRadius:10, display:"inline-block", marginBottom:8 },
+  destCity: { fontSize:14, fontWeight:700, color:"#E8D5A3", marginBottom:2 },
+  destCountry: { fontSize:11, color:"#4A4A6A", marginBottom:8 },
+  destTemp: { fontSize:12, color:"#6A6A8A" },
+  quickGrid: { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 },
+  quickCard: { background:"#0F0F1E", border:"1px solid #1A1A28", borderRadius:14, padding:"24px", cursor:"pointer", transition:"all 0.2s", display:"flex", flexDirection:"column", gap:8 },
+  quickIcon: { fontSize:28 },
+  quickTitle: { fontSize:15, fontWeight:700, color:"#E8D5A3" },
+  quickDesc: { fontSize:12, color:"#4A4A6A", lineHeight:1.5 },
+};
+
 const s = {
   root: { minHeight:"100vh", background:"#080810", display:"flex", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0" },
   sidebar: { width:240, minHeight:"100vh", background:"linear-gradient(180deg,#0C0C18,#0A0A14)", borderRight:"1px solid #1A1A28", display:"flex", flexDirection:"column", padding:"28px 0", position:"sticky", top:0, height:"100vh", flexShrink:0 },
@@ -325,3 +435,4 @@ const s = {
   accountEmail: { fontSize:14, color:"#6A6A8A" },
   accountMeta: { fontSize:12, color:"#3A3A5A", marginTop:4 },
 };
+
