@@ -168,16 +168,18 @@ ENTREGUE OBRIGATORIAMENTE (em Markdown formatado):
 [Síntese estratégica da viagem, highlights e expectativas]
 
 ### ✈️ ANÁLISE DE VOOS
-Você é um especialista em tarifas aéreas. Analise as melhores opções de voo com 3 perfis obrigatórios:
+Você é um especialista em tarifas aéreas. Analise as melhores opções de voo com 3 perfis obrigatórios.
 
-**[A] MAIS BARATO** — menor custo total incluindo taxas e bagagem
-**[B] MELHOR CUSTO-BENEFÍCIO** — equilíbrio entre preço, conforto e tempo  
-**[C] MAIS RÁPIDO/CONVENIENTE** — menor duração ou melhores horários
+OBRIGATÓRIO: Use exatamente este formato de tabela Markdown (com separador de colunas):
 
-Apresente em tabela:
-| Perfil | Companhia | Data/Hora | Duração | Conexões | Bagagem | Preço Total |
+| Perfil | Companhia | Data/Hora Ida | Data/Hora Volta | Duração | Conexões | Bagagem | Preço Total |
+|--------|-----------|---------------|-----------------|---------|----------|---------|-------------|
+| [A] MAIS BARATO | [companhia] | [data hora] | [data hora] | [duração] | [conexões] | [bagagem] | R$ [valor] |
+| [B] CUSTO-BENEFÍCIO | [companhia] | [data hora] | [data hora] | [duração] | [conexões] | [bagagem] | R$ [valor] |
+| [C] MAIS RÁPIDO | [companhia] | [data hora] | [data hora] | [duração] | [conexões] | [bagagem] | R$ [valor] |
 
-Para cada perfil inclua: por que foi selecionado, pontos de atenção, estratégias de economia (melhores dias, milhas, bilhetes separados).
+Após a tabela, para cada perfil explique em 2 linhas: por que foi selecionado e principal ponto de atenção.
+Inclua também: melhor dia para comprar, uso de milhas vale a pena?, rota alternativa mais barata.
 
 Inclua os links de busca abaixo (mantenha exatamente como está):
 🔍 **Google Flights:** https://www.google.com/travel/flights?q=voos+de+${formData.origem}+para+${formData.destino}&hl=pt-BR
