@@ -19,7 +19,15 @@ export default function App() {
 
 function Dashboard({ user, onSignOut }) {
   const [view, setView] = useState("home");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const isAdmin = user.email === ADMIN_EMAIL;
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const navItems = [
     { id: "home", icon: "🏠", label: "Início" },
@@ -29,10 +37,30 @@ function Dashboard({ user, onSignOut }) {
     ...(isAdmin ? [{ id: "admin", icon: "⚙️", label: "Admin" }] : []),
   ];
 
+  const navigateTo = (id) => {
+    setView(id);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div style={s.root}>
       <style>{css}</style>
-      <aside style={s.sidebar}>
+
+      {/* Mobile top bar */}
+      {isMobile && <div style={{ ...s.mobileTopBar, display:"flex" }}>
+        <div style={s.mobileLogo}>✈ VOYAGER<span style={{ color: "#C8A96E" }}>AI</span></div>
+        <button style={s.hamburger} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          {mobileMenuOpen ? "✕" : "☰"}
+        </button>
+      </div>}
+
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div style={s.mobileOverlay} onClick={() => setMobileMenuOpen(false)} />
+      )}
+
+      {/* Sidebar — hidden on mobile unless open */}
+      <aside style={{ ...s.sidebar, ...(mobileMenuOpen ? s.sidebarMobileOpen : {}), ...(isMobile && !mobileMenuOpen ? {display:"none"} : {}) }}>
         <div style={s.sidebarLogo}>
           ✈ VOYAGER<span style={{ color: "#C8A96E" }}>AI</span>
         </div>
@@ -41,7 +69,7 @@ function Dashboard({ user, onSignOut }) {
             <button
               key={item.id}
               style={{ ...s.navItem, ...(view === item.id ? s.navItemActive : {}) }}
-              onClick={() => setView(item.id)}
+              onClick={() => navigateTo(item.id)}
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
@@ -61,13 +89,28 @@ function Dashboard({ user, onSignOut }) {
           <button style={s.signOutBtn} onClick={onSignOut}>Sair</button>
         </div>
       </aside>
-      <main style={s.main}>
+
+      <main style={{ ...s.main, ...(isMobile ? {paddingTop:72, paddingBottom:80, paddingLeft:16, paddingRight:16} : {}) }}>
         {view === "home" && <HomeView user={user} setView={setView} />}
         {view === "newPlan" && <TravelAISaaS user={user} onPlanSaved={() => setView("history")} />}
         {view === "history" && <HistoryView user={user} />}
         {view === "account" && <AccountView user={user} />}
         {view === "admin" && isAdmin && <AdminView />}
       </main>
+
+      {/* Mobile bottom nav */}
+      {isMobile && <nav style={{ ...s.mobileBottomNav, display:"flex" }}>
+        {navItems.slice(0, 4).map((item) => (
+          <button
+            key={item.id}
+            style={{ ...s.mobileNavBtn, ...(view === item.id ? s.mobileNavBtnActive : {}) }}
+            onClick={() => navigateTo(item.id)}
+          >
+            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span style={{ fontSize: 10 }}>{item.label}</span>
+          </button>
+        ))}
+      </nav>}
     </div>
   );
 }
@@ -348,6 +391,31 @@ const css = `
   body { background: #080810; }
   @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   @keyframes orbFloat { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
+  @media (max-width: 768px) {
+    /* Show mobile top bar */
+    [data-mobile-topbar] { display: flex !important; }
+    /* Show mobile bottom nav */
+    [data-mobile-bottomnav] { display: flex !important; }
+    /* Hide desktop sidebar */
+    [data-desktop-sidebar] { display: none !important; }
+    /* Main padding adjusts for top bar + bottom nav */
+    [data-main] { padding: 80px 16px 90px !important; }
+    /* Stats grid: 2 cols on mobile */
+    [data-stats-row] { grid-template-columns: repeat(2,1fr) !important; }
+    /* Dest grid: 3 cols on mobile */
+    [data-dest-grid] { grid-template-columns: repeat(3,1fr) !important; }
+    /* Quick grid: 1 col on mobile */
+    [data-quick-grid] { grid-template-columns: 1fr !important; }
+    /* Hero padding */
+    [data-hero-content] { padding: 32px 24px !important; }
+    /* Plans grid: 1 col on mobile */
+    [data-plans-grid] { grid-template-columns: 1fr !important; }
+    /* Checkout: 1 col */
+    [data-checkout-wrap] { grid-template-columns: 1fr !important; }
+    /* Admin stats: 1 col */
+    [data-admin-stats] { grid-template-columns: 1fr !important; }
+  }
 `;
 
 const sh = {
@@ -387,6 +455,7 @@ const sh = {
 const s = {
   root: { minHeight:"100vh", background:"#080810", display:"flex", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0" },
   sidebar: { width:240, minHeight:"100vh", background:"linear-gradient(180deg,#0C0C18,#0A0A14)", borderRight:"1px solid #1A1A28", display:"flex", flexDirection:"column", padding:"28px 0", position:"sticky", top:0, height:"100vh", flexShrink:0 },
+  sidebarMobileOpen: { position:"fixed", top:0, left:0, zIndex:200, height:"100vh", display:"flex" },
   sidebarLogo: { fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:700, color:"#F0E8D0", letterSpacing:"0.12em", padding:"0 24px 28px", borderBottom:"1px solid #1A1A28", marginBottom:16 },
   nav: { display:"flex", flexDirection:"column", gap:4, padding:"0 12px", flex:1 },
   navItem: { display:"flex", alignItems:"center", gap:12, padding:"11px 16px", background:"transparent", border:"none", borderRadius:10, color:"#4A4A6A", cursor:"pointer", fontSize:13, fontWeight:500, fontFamily:"'DM Sans',sans-serif", textAlign:"left" },
@@ -397,6 +466,13 @@ const s = {
   userName: { fontSize:13, fontWeight:600, color:"#C8C8D8" },
   userEmail: { fontSize:11, color:"#4A4A6A", marginTop:1 },
   signOutBtn: { width:"100%", padding:"9px", background:"transparent", border:"1px solid #1A1A28", borderRadius:8, color:"#4A4A6A", cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" },
+  mobileTopBar: { display:"none", position:"fixed", top:0, left:0, right:0, zIndex:150, background:"rgba(8,8,16,0.97)", borderBottom:"1px solid #1A1A28", padding:"14px 20px", alignItems:"center", justifyContent:"space-between", backdropFilter:"blur(10px)" },
+  mobileLogo: { fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, color:"#F0E8D0", letterSpacing:"0.12em" },
+  hamburger: { background:"transparent", border:"none", color:"#C8A96E", fontSize:22, cursor:"pointer", padding:"4px 8px" },
+  mobileOverlay: { position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:199 },
+  mobileBottomNav: { display:"none", position:"fixed", bottom:0, left:0, right:0, zIndex:150, background:"rgba(8,8,16,0.97)", borderTop:"1px solid #1A1A28", padding:"8px 0 12px", justifyContent:"space-around", backdropFilter:"blur(10px)" },
+  mobileNavBtn: { display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"transparent", border:"none", color:"#4A4A6A", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", padding:"4px 16px", minWidth:60 },
+  mobileNavBtnActive: { color:"#C8A96E" },
   main: { flex:1, overflowY:"auto", padding:"40px" },
   view: { animation:"fadeUp 0.4s ease", maxWidth:860 },
   viewTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:"#E8D5A3", marginBottom:28 },
