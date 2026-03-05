@@ -340,6 +340,8 @@ CNPJ: 11.915.734/0001-17
     const result = [];
     let inTable = false;
     let tableRows = [];
+    // Placeholder to protect table HTML from further replacements
+    const tables = [];
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -352,16 +354,18 @@ CNPJ: 11.915.734/0001-17
         const cells = trimmed.slice(1, -1).split("|").map(c => c.trim());
         tableRows.push(cells);
       } else if (isSeparator) {
-        // skip separator
+        // skip separator rows
       } else {
-        if (inTable) {
-          let html = "<table>";
+        if (inTable && tableRows.length) {
+          let html = '<div class="table-wrap"><table>';
           tableRows.forEach((row, idx) => {
             const tag = idx === 0 ? "th" : "td";
             html += "<tr>" + row.map(c => "<" + tag + ">" + c + "</" + tag + ">").join("") + "</tr>";
           });
-          html += "</table>";
-          result.push(html);
+          html += "</table></div>";
+          const placeholder = "%%TABLE_" + tables.length + "%%";
+          tables.push(html);
+          result.push(placeholder);
           tableRows = [];
           inTable = false;
         }
@@ -369,16 +373,19 @@ CNPJ: 11.915.734/0001-17
       }
     }
     if (inTable && tableRows.length) {
-      let html = "<table>";
+      let html = '<div class="table-wrap"><table>';
       tableRows.forEach((row, idx) => {
         const tag = idx === 0 ? "th" : "td";
         html += "<tr>" + row.map(c => "<" + tag + ">" + c + "</" + tag + ">").join("") + "</tr>";
       });
-      html += "</table>";
-      result.push(html);
+      html += "</table></div>";
+      const placeholder = "%%TABLE_" + tables.length + "%%";
+      tables.push(html);
+      result.push(placeholder);
     }
 
-    return result.join("\n")
+    let out = result.join("\n")
+      .replace(/^#### (.+)$/gm, '<h4 class="md-h4">$1</h4>')
       .replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>')
       .replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="md-h1">$1</h1>')
@@ -387,9 +394,19 @@ CNPJ: 11.915.734/0001-17
       .replace(/^- (.+)$/gm, '<li class="md-li">$1</li>')
       .replace(/^(\d+)\. (.+)$/gm, '<li class="md-li md-oli"><span>$1.</span> $2</li>')
       .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #2A2A3A;margin:1rem 0"/>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#C8A96E">$1</a>')
+      // Markdown links [text](url)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#C8A96E;text-decoration:underline;word-break:break-all">$1</a>')
+      // Bare URLs: https://... or http://... not already inside href=""
+      .replace(/(?<!href=["'])(?<!">)(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#C8A96E;text-decoration:underline;word-break:break-all">$1</a>')
       .replace(/\n\n/g, '</p><p class="md-p">')
       .replace(/\n/g, "<br/>");
+
+    // Restore tables (protected from replacements above)
+    tables.forEach((html, idx) => {
+      out = out.replace("%%TABLE_" + idx + "%%", html);
+    });
+
+    return out;
   };
 
   const getDias = () => {
@@ -413,7 +430,7 @@ CNPJ: 11.915.734/0001-17
           </div>
         </div>
 
-        <div data-plan-body style={styles.planBody} ref={planRef}>
+        <div style={styles.planBody} ref={planRef}>
           {generatingPlan ? (
             <div style={styles.loadingWrap}>
               <div style={styles.loadingOrb}></div>
@@ -431,13 +448,47 @@ CNPJ: 11.915.734/0001-17
         {planGenerated && !generatingPlan && (
           <div style={styles.planFooter} className="no-print">
             <button style={styles.downloadBtn} onClick={() => {
-              const printWindow = window.open('', '_blank');
-              const content = document.querySelector('.plan-markdown');
-              if (!content) return;
-              printWindow.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>VoyagerAI — Plano de Viagem</title><style>@import url(\'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap\');*{box-sizing:border-box;margin:0;padding:0;}body{background:white;color:#1A1A2A;font-family:\'DM Sans\',sans-serif;font-size:11pt;line-height:1.7;padding:15mm 20mm;}h1{font-family:\'Cormorant Garamond\',serif;font-size:22pt;color:#7A5010;margin:18pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:5pt;}h2{font-family:\'Cormorant Garamond\',serif;font-size:15pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:700;}p{margin:4pt 0;color:#1A1A2A;}li{margin:3pt 0 3pt 16pt;color:#1A1A2A;}strong{color:#5A3A00;}em{color:#555;}a{color:#8B6914;}table{border-collapse:collapse;width:100%;margin:8pt 0;page-break-inside:avoid;}th{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;background:#F5EDD0;color:#7A5010;font-weight:700;text-align:left;}td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}tr:nth-child(even) td{background:#FAFAF5;}hr{border:none;border-top:1px solid #CCC;margin:8pt 0;}.header{text-align:center;padding-bottom:14pt;margin-bottom:14pt;border-bottom:2px solid #C8A96E;}@page{margin:15mm 20mm;size:A4;}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}</style></head><body><div class="header"><h1>✈ VOYAGERAI</h1><p style="color:#6A6A8A;font-size:10pt;margin-top:4pt">Consultoria Estratégica de Viagens com IA</p></div>' + content.innerHTML + '</body></html>');
-              printWindow.document.close();
-              printWindow.focus();
-              setTimeout(() => { printWindow.print(); printWindow.close(); }, 1000);
+              const planEl = document.querySelector('.plan-markdown');
+              if (!planEl) return;
+              const htmlContent = planEl.innerHTML;
+              const printStyles = `
+                @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+                *{box-sizing:border-box;margin:0;padding:0;}
+                body{background:white;color:#1A1A2A;font-family:'DM Sans',sans-serif;font-size:11pt;line-height:1.7;padding:15mm 20mm;}
+                h1{font-family:'Cormorant Garamond',serif;font-size:22pt;color:#7A5010;margin:18pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:5pt;}
+                h2{font-family:'Cormorant Garamond',serif;font-size:15pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}
+                h3{font-size:12pt;color:#333;margin:10pt 0 4pt;font-weight:700;}
+                h4{font-size:11pt;color:#444;margin:8pt 0 3pt;font-weight:700;}
+                p,br{margin:4pt 0;color:#1A1A2A;}
+                li{margin:3pt 0 3pt 16pt;color:#1A1A2A;}
+                strong{color:#5A3A00;}
+                em{color:#555;}
+                a{color:#8B6914;word-break:break-all;}
+                .table-wrap{overflow-x:auto;margin:8pt 0;}
+                table{border-collapse:collapse;width:100%;page-break-inside:avoid;}
+                th{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;background:#F5EDD0;color:#7A5010;font-weight:700;text-align:left;}
+                td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}
+                tr:nth-child(even) td{background:#FAFAF5;}
+                hr{border:none;border-top:1px solid #CCC;margin:8pt 0;}
+                .header{text-align:center;padding-bottom:14pt;margin-bottom:14pt;border-bottom:2px solid #C8A96E;}
+                @page{margin:15mm 20mm;size:A4;}
+                @media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}
+              `;
+              const fullHTML = \`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>VoyagerAI — Plano de Viagem</title><style>\${printStyles}</style></head><body><div class="header"><h1>✈ VOYAGERAI</h1><p style="color:#6A6A8A;font-size:10pt;margin-top:4pt">Consultoria Estratégica de Viagens com IA</p></div>\${htmlContent}</body></html>\`;
+              const blob = new Blob([fullHTML], { type: 'text/html' });
+              const url = URL.createObjectURL(blob);
+              const printWindow = window.open(url, '_blank');
+              if (printWindow) {
+                printWindow.onload = () => {
+                  setTimeout(() => { printWindow.print(); }, 800);
+                };
+              } else {
+                // Fallback: download as HTML file
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'VoyagerAI-Plano-de-Viagem.html';
+                a.click();
+              }
             }}>⬇ Baixar PDF</button>
             <button style={styles.newPlanBtn} onClick={() => {
               setPlanGenerated(false);
@@ -481,7 +532,7 @@ CNPJ: 11.915.734/0001-17
             <div style={styles.plansWrap}>
               <h2 style={styles.sectionTitle}>Escolha seu plano</h2>
               <p style={styles.sectionSub}>{formData.origem} → <strong>{formData.destino}</strong> · {getDias() || "?"} dias</p>
-              <div data-plans-grid style={styles.plansGrid}>
+              <div style={styles.plansGrid}>
                 {PLANS.map((plan) => (
                   <div key={plan.id} style={{ ...styles.planCard, ...(selectedPlan === plan.id ? styles.planCardSelected : {}), ...(plan.highlight ? styles.planCardHighlight : {}) }} onClick={() => setSelectedPlan(plan.id)}>
                     {plan.highlight && <div style={styles.planBadgeTop}>MAIS POPULAR</div>}
@@ -504,7 +555,7 @@ CNPJ: 11.915.734/0001-17
           )}
 
           {paymentStep === "checkout" && (
-            <div data-checkout-wrap style={styles.checkoutWrap}>
+            <div style={styles.checkoutWrap}>
               <div style={styles.checkoutSummary}>
                 <h3 style={styles.summaryTitle}>Resumo do Pedido</h3>
                 <div style={styles.summaryRow}><span>{PLANS.find((p) => p.id === selectedPlan)?.name}</span><span style={{ color: "#C8A96E" }}>{PLANS.find((p) => p.id === selectedPlan)?.price}</span></div>
@@ -567,7 +618,7 @@ CNPJ: 11.915.734/0001-17
           <div style={styles.progressBar}>
             <div style={{ ...styles.progressFill, width: `${progress}%` }} />
           </div>
-          <div data-progress-steps style={styles.progressSteps}>
+          <div style={styles.progressSteps}>
             {STEPS.map((s, i) => (
               <div key={s} style={{ ...styles.progressStep, ...(i <= currentStep ? styles.progressStepActive : {}) }}>
                 <div style={{ ...styles.progressDot, ...(i <= currentStep ? styles.progressDotActive : {}) }}>{i < currentStep ? "✓" : i + 1}</div>
@@ -577,10 +628,10 @@ CNPJ: 11.915.734/0001-17
           </div>
         </div>
 
-        <div data-form-card style={styles.formCard}>
+        <div style={styles.formCard}>
           {step === "destino" && (
             <div style={styles.stepContent}>
-              <h2 data-step-title style={styles.stepTitle}>🌍 Para onde vamos?</h2>
+              <h2 style={styles.stepTitle}>🌍 Para onde vamos?</h2>
               <p style={styles.stepSubtitle}>Informe sua cidade de origem e o destino dos sonhos</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Cidade de Origem</label>
@@ -601,7 +652,7 @@ CNPJ: 11.915.734/0001-17
               <p style={styles.stepSubtitle}>Nos conte sobre o grupo de viajantes</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Perfil da Viagem</label>
-                <div data-profile-grid style={styles.profileGrid}>
+                <div style={styles.profileGrid}>
                   {[{ id: "solo", label: "Solo", icon: "🧳" }, { id: "casal", label: "Casal", icon: "💑" }, { id: "familia", label: "Família", icon: "👨‍👩‍👧‍👦" }, { id: "amigos", label: "Amigos", icon: "🎉" }].map((p) => (
                     <button key={p.id} style={{ ...styles.profileBtn, ...(formData.perfil === p.id ? styles.profileBtnActive : {}) }} onClick={() => update("perfil", p.id)}>
                       <span style={{ fontSize: 28 }}>{p.icon}</span><span>{p.label}</span>
@@ -656,7 +707,7 @@ CNPJ: 11.915.734/0001-17
               <p style={styles.stepSubtitle}>Informe o orçamento total disponível para a viagem</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Moeda</label>
-                <div data-moeda-toggle style={styles.moedaToggle}>
+                <div style={styles.moedaToggle}>
                   {["BRL", "USD", "EUR"].map((m) => (
                     <button key={m} style={{ ...styles.moedaBtn, ...(formData.moeda === m ? styles.moedaBtnActive : {}) }} onClick={() => update("moeda", m)}>
                       {m === "BRL" ? "R$ Real" : m === "USD" ? "$ Dólar" : "€ Euro"}
@@ -689,7 +740,7 @@ CNPJ: 11.915.734/0001-17
             <div style={styles.stepContent}>
               <h2 style={styles.stepTitle}>🎯 Seus interesses</h2>
               <p style={styles.stepSubtitle}>Selecione o que mais combina com você (pode escolher vários)</p>
-              <div data-interests-grid style={styles.interestsGrid}>
+              <div style={styles.interestsGrid}>
                 {INTERESTS.map((interest) => (
                   <button key={interest.id} style={{ ...styles.interestBtn, ...(formData.interesses.includes(interest.id) ? styles.interestBtnActive : {}) }} onClick={() => toggleInterest(interest.id)}>
                     <span style={{ fontSize: 22 }}>{interest.icon}</span>
@@ -723,37 +774,12 @@ CNPJ: 11.915.734/0001-17
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #080810; overflow-x: hidden; }
+  body { background: #080810; }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(1) saturate(2) hue-rotate(5deg); }
   input::placeholder, textarea::placeholder { color: #4A4A6A; }
   input:focus, textarea:focus { outline: none; border-color: #C8A96E !important; }
   @keyframes orbPulse { 0%,100%{transform:scale(1);opacity:0.8} 50%{transform:scale(1.15);opacity:1} }
   @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-
-  @media (max-width: 600px) {
-    /* Profile grid: 2x2 */
-    [data-profile-grid] { grid-template-columns: repeat(2,1fr) !important; }
-    /* Interests: 3 cols */
-    [data-interests-grid] { grid-template-columns: repeat(3,1fr) !important; }
-    /* Plans: 1 col */
-    [data-plans-grid] { grid-template-columns: 1fr !important; }
-    /* Checkout: 1 col */
-    [data-checkout-wrap] { grid-template-columns: 1fr !important; }
-    /* Progress steps: smaller */
-    [data-progress-steps] { gap: 2px; }
-    [data-progress-label] { display: none; }
-    /* Form card padding */
-    [data-form-card] { padding: 20px 16px !important; }
-    /* Plan page body */
-    [data-plan-body] { padding: 24px 16px !important; }
-    /* Prioridade grid: 2 cols ok, keep */
-    /* Moeda toggle: wrap */
-    [data-moeda-toggle] { flex-wrap: wrap; }
-    /* Step title smaller */
-    [data-step-title] { font-size: 22px !important; }
-    /* Hero content */
-    [data-hero-content] { padding: 32px 20px !important; }
-  }
 `;
 
 const planCSS = `
@@ -772,10 +798,12 @@ const planCSS = `
   .md-li { margin:0.4rem 0 0.4rem 1.6rem; line-height:1.8; color:#B8B8C8; }
   .md-oli span { color:#C8A96E; font-weight:700; margin-right:4px; }
 
-  table { border-collapse:collapse; width:100%; margin:1.2rem 0; border-radius:8px; overflow:hidden; }
+  .table-wrap { overflow-x:auto; margin:1.2rem 0; border-radius:8px; }
+  table { border-collapse:collapse; width:100%; min-width:400px; }
+  th { padding:10px 16px; border:1px solid #2A2A3A; font-size:0.85rem; color:#C8A96E; background:#1A1A2A; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; text-align:left; }
   td { padding:10px 16px; border:1px solid #2A2A3A; font-size:0.9rem; color:#B8B8C8; }
-  tr:first-child td { background:#1A1A2A; font-weight:700; color:#C8A96E; font-size:0.85rem; letter-spacing:0.05em; text-transform:uppercase; }
   tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
+  .md-h4 { font-size:1rem; color:#E8D5A3; margin:1.4rem 0 0.5rem; font-weight:700; }
   strong { color:#E8D5A3; font-weight:600; }
   em { color:#A8A8C8; font-style:italic; }
 
@@ -813,7 +841,7 @@ const planCSS = `
 `;
 
 const styles = {
-  root: { minHeight:"100vh", background:"linear-gradient(135deg,#080810 0%,#0D0D1A 50%,#0A0A14 100%)", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"20px 16px 40px", overflowX:"hidden", width:"100%" },
+  root: { minHeight:"100vh", background:"linear-gradient(135deg,#080810 0%,#0D0D1A 50%,#0A0A14 100%)", fontFamily:"'DM Sans',sans-serif", color:"#E8E8F0", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"20px 16px 40px" },
   container: { width:"100%", maxWidth:700, animation:"fadeUp 0.6s ease" },
   header: { textAlign:"center", padding:"32px 0 24px" },
   logo: { fontFamily:"'Cormorant Garamond',serif", fontSize:36, fontWeight:700, letterSpacing:"0.15em", color:"#F0E8D0" },
@@ -840,7 +868,7 @@ const styles = {
   inputPrefix: { position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", color:"#C8A96E", fontWeight:600, fontSize:15 },
   inputWithPrefix: { paddingLeft:48 },
   textarea: { width:"100%", padding:"14px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10, color:"#E8E8F0", fontSize:14, resize:"vertical", fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 },
-  profileGrid: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, "@media(max-width:600px)": {gridTemplateColumns:"repeat(2,1fr)"} },
+  profileGrid: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
   profileBtn: { padding:"16px 8px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:12, color:"#8A8AAA", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:8, fontSize:13, fontWeight:500, transition:"all 0.2s", fontFamily:"'DM Sans',sans-serif" },
   profileBtnActive: { background:"rgba(200,169,110,0.12)", border:"1px solid #C8A96E", color:"#E8D5A3" },
   counter: { display:"flex", alignItems:"center", gap:16, padding:"10px 16px", background:"#0A0A16", border:"1px solid #1E1E32", borderRadius:10 },
@@ -904,8 +932,8 @@ const styles = {
   loadingSubtext: { fontSize:14, color:"#4A4A6A" },
   planContent: { color:"#C8C8D8", lineHeight:1.8, animation:"fadeUp 0.5s ease" },
   cursor: { display:"inline", color:"#C8A96E", animation:"blink 1s step-end infinite", fontSize:18 },
-  planFooter: { background:"rgba(10,10,20,0.95)", borderTop:"1px solid #1E1E30", padding:"16px 16px", display:"flex", justifyContent:"center", gap:12, backdropFilter:"blur(10px)", position:"sticky", bottom:0, zIndex:100, flexWrap:"wrap" },
-  downloadBtn: { padding:"14px 28px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em", flex:1, maxWidth:220 },
-  newPlanBtn: { padding:"14px 28px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif", flex:1, maxWidth:180 },
+  planFooter: { background:"rgba(10,10,20,0.95)", borderTop:"1px solid #1E1E30", padding:"16px 16px", display:"flex", justifyContent:"center", gap:12, backdropFilter:"blur(10px)", flexWrap:"wrap" },
+  downloadBtn: { padding:"12px 32px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em" },
+  newPlanBtn: { padding:"12px 32px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif" },
 };
 
