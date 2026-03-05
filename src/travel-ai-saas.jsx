@@ -904,8 +904,8 @@ const styles = {
   loadingSubtext: { fontSize:14, color:"#4A4A6A" },
   planContent: { color:"#C8C8D8", lineHeight:1.8, animation:"fadeUp 0.5s ease" },
   cursor: { display:"inline", color:"#C8A96E", animation:"blink 1s step-end infinite", fontSize:18 },
-  planFooter: { background:"rgba(10,10,20,0.95)", borderTop:"1px solid #1E1E30", padding:"16px 24px", display:"flex", justifyContent:"center", gap:16, backdropFilter:"blur(10px)" },
-  downloadBtn: { padding:"12px 32px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em" },
-  newPlanBtn: { padding:"12px 32px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif" },
+  planFooter: { background:"rgba(10,10,20,0.95)", borderTop:"1px solid #1E1E30", padding:"16px 16px", display:"flex", justifyContent:"center", gap:12, backdropFilter:"blur(10px)", position:"sticky", bottom:0, zIndex:100, flexWrap:"wrap" },
+  downloadBtn: { padding:"14px 28px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em", flex:1, maxWidth:220 },
+  newPlanBtn: { padding:"14px 28px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif", flex:1, maxWidth:180 },
 };
 
