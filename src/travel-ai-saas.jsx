@@ -260,7 +260,17 @@ Liste os principais contatos de emergência específicos para ${formData.destino
 
 Formate como lista clara e fácil de copiar para o celular.
 
-Seja específico, use dados reais, seja inspirador. Este é um produto premium.`;
+Seja específico, use dados reais, seja inspirador. Este é um produto premium.
+
+Finalize o plano SEMPRE com exatamente este texto:
+
+---
+✈️ Produto elaborado por **Shoppingtur Viagens**
+CNPJ: 11.915.734/0001-17
+📱 WhatsApp: (47) 99685-5528
+📸 Instagram: @shoppingturviagens | @douglas.viagens
+
+*Bon voyage e que seja uma experiência inesquecível!* 🌍✨`;
 
     try {
       const response = await fetch("https://api.anthropic.com/v1/messages", {
