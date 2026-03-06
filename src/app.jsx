@@ -10,7 +10,7 @@ const supabase = createClient(
 
 const ADMIN_EMAIL = "josedouglas13@gmail.com"; // seu email de admin
 
-// ── Renderiza markdown com tabelas e links clicáveis ──────────────────────
+// ── Renderiza markdown com tabelas e links ─────────────────────────────────
 function formatPlanContent(text) {
   if (!text) return "";
   const lines = text.split("\n");
@@ -24,23 +24,22 @@ function formatPlanContent(text) {
     const trimmed = raw.trim();
     const isSep = /^\|[-:\s|]+\|$/.test(trimmed);
     const isRow = trimmed.startsWith("|") && trimmed.endsWith("|") && !isSep;
-
     if (isRow) {
       inTable = true;
-      tableRows.push(trimmed.slice(1, -1).split("|").map(c => c.trim()));
+      tableRows.push(trimmed.slice(1,-1).split("|").map(c => c.trim()));
     } else if (isSep) {
       // skip
     } else {
       if (inTable && tableRows.length > 0) {
-        let html = '<div style="overflow-x:auto;margin:1rem 0"><table style="border-collapse:collapse;width:100%;min-width:360px"><thead><tr>';
-        tableRows[0].forEach(c => { html += '<th style="padding:8px 12px;background:#1A1A2A;border:1px solid #2A2A3A;color:#C8A96E;font-size:0.82rem;text-transform:uppercase;text-align:left">' + c + "</th>"; });
+        let html = "<table class=\"ph-table\"><thead><tr>";
+        tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
         html += "</tr></thead><tbody>";
         for (let r = 1; r < tableRows.length; r++) {
-          html += '<tr>';
-          tableRows[r].forEach(c => { html += '<td style="padding:8px 12px;border:1px solid #2A2A3A;font-size:0.87rem;color:#C0C0D0">' + c + "</td>"; });
+          html += "<tr>";
+          tableRows[r].forEach(c => { html += "<td>" + c + "</td>"; });
           html += "</tr>";
         }
-        html += "</tbody></table></div>";
+        html += "</tbody></table>";
         const ph = "TBLPH" + tables.length + "TBLEND";
         tables.push(html);
         result.push(ph);
@@ -50,35 +49,33 @@ function formatPlanContent(text) {
     }
   }
   if (inTable && tableRows.length > 0) {
-    let html = '<div style="overflow-x:auto;margin:1rem 0"><table style="border-collapse:collapse;width:100%;min-width:360px"><thead><tr>';
-    tableRows[0].forEach(c => { html += '<th style="padding:8px 12px;background:#1A1A2A;border:1px solid #2A2A3A;color:#C8A96E;font-size:0.82rem;text-transform:uppercase;text-align:left">' + c + "</th>"; });
+    let html = "<table class=\"ph-table\"><thead><tr>";
+    tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
     html += "</tr></thead><tbody>";
     for (let r = 1; r < tableRows.length; r++) {
-      html += '<tr>';
-      tableRows[r].forEach(c => { html += '<td style="padding:8px 12px;border:1px solid #2A2A3A;font-size:0.87rem;color:#C0C0D0">' + c + "</td>"; });
+      html += "<tr>";
+      tableRows[r].forEach(c => { html += "<td>" + c + "</td>"; });
       html += "</tr>";
     }
-    html += "</tbody></table></div>";
+    html += "</tbody></table>";
     const ph = "TBLPH" + tables.length + "TBLEND";
-    tables.push(html);
-    result.push(ph);
+    tables.push(html); result.push(ph);
   }
 
   let out = result.join("\n")
-    .replace(/^#### (.+)$/gm, '<h4 style="font-size:1rem;color:#E8D5A3;margin:1.2rem 0 0.4rem;font-weight:700">$1</h4>')
-    .replace(/^### (.+)$/gm,  '<h3 style="font-size:1.1rem;color:#F0E8D0;margin:1.6rem 0 0.5rem;font-weight:700">$1</h3>')
-    .replace(/^## (.+)$/gm,   '<h2 style="font-family:Cormorant Garamond,serif;font-size:1.5rem;color:#C8A96E;margin:2rem 0 0.8rem;border-bottom:1px solid #2A2A3A;padding-bottom:0.4rem">$1</h2>')
-    .replace(/^# (.+)$/gm,    '<h1 style="font-family:Cormorant Garamond,serif;font-size:2rem;color:#E8D5A3;margin:2rem 0 1rem">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#E8D5A3">$1</strong>')
-    .replace(/\*(.+?)\*/g,   '<em style="color:#A8A8C8">$1</em>')
-    .replace(/^[-*] (.+)$/gm, '<li style="margin:0.3rem 0 0.3rem 1.2rem;color:#B8B8C8">$1</li>')
-    .replace(/^(\d+)\. (.+)$/gm, '<li style="margin:0.3rem 0 0.3rem 1.2rem;color:#B8B8C8"><span style="color:#C8A96E;font-weight:700">$1.</span> $2</li>')
-    .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #2A2A3A;margin:1.5rem 0"/>')
+    .replace(/^### (.+)$/gm, "<h3 style=\"font-size:1rem;color:#F0E8D0;margin:1.2rem 0 0.4rem;font-weight:700\">$1</h3>")
+    .replace(/^## (.+)$/gm,  "<h2 style=\"font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:#C8A96E;margin:1.8rem 0 0.6rem;border-bottom:1px solid #2A2A3A;padding-bottom:0.3rem\">$1</h2>")
+    .replace(/^# (.+)$/gm,   "<h1 style=\"font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:#E8D5A3;margin:2rem 0 1rem\">$1</h1>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong style=\"color:#E8D5A3\">$1</strong>")
+    .replace(/\*(.+?)\*/g,   "<em style=\"color:#A8A8C8\">$1</em>")
+    .replace(/^[-*] (.+)$/gm, "<li style=\"margin:0.25rem 0 0.25rem 1.2rem;color:#C8C8D8\">$1</li>")
+    .replace(/^(\d+)\. (.+)$/gm, "<li style=\"margin:0.25rem 0 0.25rem 1.2rem;color:#C8C8D8\"><span style=\"color:#C8A96E;font-weight:700\">$1.</span> $2</li>")
+    .replace(/^---+$/gm, "<hr style=\"border:none;border-top:1px solid #2A2A3A;margin:1.5rem 0\"/>")
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener" style="color:#C8A96E;text-decoration:underline;word-break:break-all">$1 ↗</a>')
+      "<a href=\"$2\" target=\"_blank\" rel=\"noopener\" style=\"color:#C8A96E;text-decoration:underline;word-break:break-all\">$1 ↗</a>")
     .replace(/(^|[\s>])(https?:\/\/[^\s<)"']+)/g,
-      '$1<a href="$2" target="_blank" rel="noopener" style="color:#C8A96E;text-decoration:underline;word-break:break-all">$2 ↗</a>')
-    .replace(/\n\n/g, '<br/><br/>')
+      "$1<a href=\"$2\" target=\"_blank\" rel=\"noopener\" style=\"color:#C8A96E;text-decoration:underline;word-break:break-all\">$2 ↗</a>")
+    .replace(/\n\n/g, "<br/><br/>")
     .replace(/\n/g, "<br/>");
 
   tables.forEach((html, idx) => {
@@ -87,31 +84,26 @@ function formatPlanContent(text) {
   return out;
 }
 
-// ── Gera e imprime PDF do plano ────────────────────────────────────────────
+// ── Download plano como HTML ───────────────────────────────────────────────
 function downloadHtml(contentHtml, titulo) {
   const css =
     "*{box-sizing:border-box;margin:0;padding:0;}" +
-    "body{background:white;color:#1A1A2A;font-family:Arial,sans-serif;font-size:11pt;line-height:1.8;padding:20mm;}" +
+    "body{background:#fff;color:#111;font-family:Arial,sans-serif;font-size:11pt;line-height:1.8;padding:20mm;}" +
     "h1{font-size:20pt;color:#7A5010;margin:16pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:4pt;}" +
     "h2{font-size:14pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}" +
-    "h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:bold;}" +
-    "h4{font-size:10pt;color:#444;margin:8pt 0 3pt;font-weight:bold;}" +
-    "li{margin:3pt 0 3pt 16pt;color:#1A1A2A;}" +
-    "strong{color:#5A3A00;}em{color:#555;}" +
+    "h3{font-size:11pt;color:#222;margin:10pt 0 4pt;font-weight:bold;}" +
+    "h4{font-size:10pt;color:#333;margin:8pt 0 3pt;font-weight:bold;}" +
+    "li{margin:3pt 0 3pt 16pt;color:#111;}" +
+    "strong{color:#5A3A00;}em{color:#333;}" +
     "a{color:#8B6914;word-break:break-all;text-decoration:underline;}" +
-    "table{border-collapse:collapse;width:100%;margin:10pt 0;}" +
-    "th{padding:7pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
-    "td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}" +
-    "tr:nth-child(even) td{background:#FAFAF7;}" +
+    ".ph-table{border-collapse:collapse;width:100%;margin:10pt 0;}" +
+    ".ph-table th{padding:7pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
+    ".ph-table td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#111;}" +
+    ".ph-table tbody tr:nth-child(even) td{background:#FAFAF7;}" +
     "hr{border:none;border-top:1px solid #CCC;margin:12pt 0;}" +
-    ".header{text-align:center;padding-bottom:12pt;margin-bottom:20pt;border-bottom:2px solid #C8A96E;}";
-
-  const header =
-    "<div class=\"header\">" +
-    "<h1>\u2708 VOYAGERAI</h1>" +
-    "<p style=\"color:#888;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p>" +
-    "<p style=\"color:#aaa;font-size:9pt;margin-top:2pt\">" + titulo + "</p>" +
-    "</div>";
+    ".header{text-align:center;padding-bottom:12pt;margin-bottom:20pt;border-bottom:2px solid #C8A96E;}" +
+    "@page{margin:15mm 20mm;size:A4;}" +
+    "@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}";
 
   const doc =
     "<!DOCTYPE html><html lang=\"pt-BR\"><head>" +
@@ -119,7 +111,11 @@ function downloadHtml(contentHtml, titulo) {
     "<title>VoyagerAI - " + titulo + "</title>" +
     "<style>" + css + "</style>" +
     "</head><body>" +
-    header +
+    "<div class=\"header\">" +
+    "<h1>\u2708 VOYAGERAI</h1>" +
+    "<p style=\"color:#555;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p>" +
+    "<p style=\"color:#777;font-size:9pt;margin-top:2pt\">" + titulo + "</p>" +
+    "</div>" +
     contentHtml +
     "</body></html>";
 
@@ -133,7 +129,6 @@ function downloadHtml(contentHtml, titulo) {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-
 
 export default function App() {
   const { user, loading, signOut } = useAuth();
@@ -321,11 +316,9 @@ function HistoryView({ user }) {
     const htmlContent = formatPlanContent(selected.conteudo || "");
     return (
       <div style={s.view}>
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
           <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
-          <button style={s.pdfBtn} onClick={() => downloadHtml(htmlContent, selected.origem + " → " + selected.destino)}>
-            ⬇ Baixar Plano (.html)
-          </button>
+          <button style={s.pdfBtn} onClick={() => downloadHtml(htmlContent, selected.origem + " → " + selected.destino)}>⬇ Baixar Plano (.html)</button>
         </div>
         <div style={s.planViewCard}>
           <h2 style={s.planViewTitle}>{selected.origem} → {selected.destino}</h2>
@@ -389,14 +382,12 @@ function AdminView() {
     const htmlContent = formatPlanContent(selected.conteudo || "");
     return (
       <div style={s.view}>
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
           <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
-          <button style={s.pdfBtn} onClick={() => downloadHtml(htmlContent, selected.origem + " → " + selected.destino)}>
-            ⬇ Baixar Plano (.html)
-          </button>
+          <button style={s.pdfBtn} onClick={() => downloadHtml(htmlContent, selected.origem + " → " + selected.destino)}>⬇ Baixar Plano (.html)</button>
         </div>
         <div style={s.planViewCard}>
-          <p style={{ color: "#C8A96E", fontSize: 12, marginBottom: 8 }}>👤 {selected.user_email}</p>
+          <p style={{ color:"#C8A96E", fontSize:12, marginBottom:8 }}>👤 {selected.user_email}</p>
           <h2 style={s.planViewTitle}>{selected.origem} → {selected.destino}</h2>
           <p style={s.planViewMeta}>{selected.plano_nome} · {new Date(selected.created_at).toLocaleDateString("pt-BR")}</p>
           <div style={{ ...s.planViewContent, fontFamily:"DM Sans,sans-serif" }} dangerouslySetInnerHTML={{ __html: htmlContent }} />
