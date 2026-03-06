@@ -283,7 +283,7 @@ CNPJ: 11.915.734/0001-17
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 8000,
+          max_tokens: 32000,
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -336,33 +336,25 @@ CNPJ: 11.915.734/0001-17
 
   const formatMarkdown = (text) => {
     if (!text) return "";
-
-    // 1. Split into lines
     const lines = text.split("\n");
     const result = [];
-    const tables = []; // protected table HTML blocks
+    const tables = [];
     let tableRows = [];
     let inTable = false;
 
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
       const trimmed = raw.trim();
-
-      // Detect table separator: |---|---|
       const isSep = /^\|[-:\s|]+\|$/.test(trimmed);
-      // Detect table row: starts and ends with |
       const isRow = trimmed.startsWith("|") && trimmed.endsWith("|") && !isSep;
-
       if (isRow) {
         inTable = true;
-        const cells = trimmed.slice(1, -1).split("|").map(c => c.trim());
-        tableRows.push(cells);
+        tableRows.push(trimmed.slice(1,-1).split("|").map(c => c.trim()));
       } else if (isSep) {
-        // skip separator
+        // skip
       } else {
         if (inTable && tableRows.length > 0) {
-          // Build table HTML
-          let html = '<div class="tbl-wrap"><table class="md-table"><thead><tr>';
+          let html = "<div class=\"tbl-wrap\"><table class=\"md-table\"><thead><tr>";
           tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
           html += "</tr></thead><tbody>";
           for (let r = 1; r < tableRows.length; r++) {
@@ -371,18 +363,16 @@ CNPJ: 11.915.734/0001-17
             html += "</tr>";
           }
           html += "</tbody></table></div>";
-          const ph = "TABPH" + tables.length + "END";
+          const ph = "TBLPH" + tables.length + "TBLEND";
           tables.push(html);
           result.push(ph);
-          tableRows = [];
-          inTable = false;
+          tableRows = []; inTable = false;
         }
         result.push(raw);
       }
     }
-    // flush last table
     if (inTable && tableRows.length > 0) {
-      let html = '<div class="tbl-wrap"><table class="md-table"><thead><tr>';
+      let html = "<div class=\"tbl-wrap\"><table class=\"md-table\"><thead><tr>";
       tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
       html += "</tr></thead><tbody>";
       for (let r = 1; r < tableRows.length; r++) {
@@ -391,39 +381,32 @@ CNPJ: 11.915.734/0001-17
         html += "</tr>";
       }
       html += "</tbody></table></div>";
-      const ph = "TABPH" + tables.length + "END";
-      tables.push(html);
-      result.push(ph);
+      const ph = "TBLPH" + tables.length + "TBLEND";
+      tables.push(html); result.push(ph);
     }
 
-    // 2. Process non-table lines
     let out = result.join("\n")
-      .replace(/^#### (.+)$/gm, '<h4 class="md-h4">$1</h4>')
-      .replace(/^### (.+)$/gm,  '<h3 class="md-h3">$1</h3>')
-      .replace(/^## (.+)$/gm,   '<h2 class="md-h2">$1</h2>')
-      .replace(/^# (.+)$/gm,    '<h1 class="md-h1">$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/^#### (.+)$/gm, "<h4 class=\"md-h4\">$1</h4>")
+      .replace(/^### (.+)$/gm,  "<h3 class=\"md-h3\">$1</h3>")
+      .replace(/^## (.+)$/gm,   "<h2 class=\"md-h2\">$1</h2>")
+      .replace(/^# (.+)$/gm,    "<h1 class=\"md-h1\">$1</h1>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong class=\"md-strong\">$1</strong>")
       .replace(/\*(.+?)\*/g,   "<em>$1</em>")
-      .replace(/^[-*] (.+)$/gm, '<li class="md-li">$1</li>')
-      .replace(/^(\d+)\. (.+)$/gm, '<li class="md-li md-oli"><span>$1.</span> $2</li>')
-      .replace(/^---+$/gm, '<hr class="md-hr"/>')
-      // markdown links [text](url)
+      .replace(/^[-*] (.+)$/gm, "<li class=\"md-li\">$1</li>")
+      .replace(/^(\d+)\. (.+)$/gm, "<li class=\"md-li\"><span class=\"md-num\">$1.</span> $2</li>")
+      .replace(/^---+$/gm, "<hr class=\"md-hr\"/>")
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-        '<a href="$2" target="_blank" rel="noopener" class="md-link">$1 ↗</a>')
-      // bare URLs
-      .replace(/(^|[\s>])(https?:\/\/[^\s<)"']+)/g,
-        '$1<a href="$2" target="_blank" rel="noopener" class="md-link">$2 ↗</a>')
-      .replace(/\n\n/g, '<br/><br/>')
+        "<a href=\"$2\" target=\"_blank\" rel=\"noopener\" class=\"md-link\">$1 ↗</a>")
+      .replace(/(^|[\s>])(https?:\/\/[^\s<)"\']+)/g,
+        "$1<a href=\"$2\" target=\"_blank\" rel=\"noopener\" class=\"md-link\">$2 ↗</a>")
+      .replace(/\n\n/g, "<br/><br/>")
       .replace(/\n/g, "<br/>");
 
-    // 3. Restore table blocks
     tables.forEach((html, idx) => {
-      out = out.split("TABPH" + idx + "END").join(html);
+      out = out.split("TBLPH" + idx + "TBLEND").join(html);
     });
-
     return out;
   };
-
   const getDias = () => {
     if (!formData.dataIda || !formData.dataVolta) return null;
     return Math.ceil((new Date(formData.dataVolta) - new Date(formData.dataIda)) / (1000 * 60 * 60 * 24));
@@ -467,34 +450,36 @@ CNPJ: 11.915.734/0001-17
               if (!planEl) return;
               const css =
                 "*{box-sizing:border-box;margin:0;padding:0;}" +
-                "body{background:white;color:#1A1A2A;font-family:Arial,sans-serif;font-size:11pt;line-height:1.8;padding:20mm;}" +
+                "body{background:#fff;color:#111;font-family:Arial,sans-serif;font-size:11pt;line-height:1.8;padding:20mm;}" +
                 "h1{font-size:20pt;color:#7A5010;margin:16pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:4pt;}" +
                 "h2{font-size:14pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}" +
-                "h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:bold;}" +
-                "h4{font-size:10pt;color:#444;margin:8pt 0 3pt;font-weight:bold;}" +
-                "li{margin:3pt 0 3pt 16pt;}" +
-                "strong{color:#5A3A00;}em{color:#555;}" +
+                "h3{font-size:11pt;color:#222;margin:10pt 0 4pt;font-weight:bold;}" +
+                "h4{font-size:10pt;color:#333;margin:8pt 0 3pt;font-weight:bold;}" +
+                "li{margin:3pt 0 3pt 16pt;color:#111;}" +
+                "strong{color:#5A3A00;}em{color:#333;}" +
                 "a{color:#8B6914;word-break:break-all;text-decoration:underline;}" +
-                "table{border-collapse:collapse;width:100%;margin:10pt 0;}" +
-                "th{padding:7pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
-                "td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}" +
-                "tr:nth-child(even) td{background:#FAFAF7;}" +
-                "hr{border:none;border-top:1px solid #CCC;margin:12pt 0;}" +
-                ".header{text-align:center;padding-bottom:12pt;margin-bottom:20pt;border-bottom:2px solid #C8A96E;}";
+                ".tbl-wrap{overflow-x:auto;margin:8pt 0;}" +
+                ".md-table{border-collapse:collapse;width:100%;}" +
+                ".md-table th{padding:6pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
+                ".md-table td{padding:6pt 10pt;border:1px solid #CCC;font-size:9pt;color:#111;}" +
+                ".md-table tbody tr:nth-child(even) td{background:#FAFAF7;}" +
+                ".md-strong{color:#5A3A00;}.md-link{color:#8B6914;}.md-num{color:#8B6914;font-weight:bold;}" +
+                "hr,.md-hr{border:none;border-top:1px solid #CCC;margin:10pt 0;}" +
+                ".header{text-align:center;padding-bottom:12pt;margin-bottom:16pt;border-bottom:2px solid #C8A96E;}" +
+                "@page{margin:15mm 20mm;size:A4;}" +
+                "@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}";
               const titulo = formData.origem + " - " + formData.destino;
-              const header =
-                "<div class=\"header\">" +
-                "<h1>\u2708 VOYAGERAI</h1>" +
-                "<p style=\"color:#888;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p>" +
-                "<p style=\"color:#aaa;font-size:9pt;margin-top:2pt\">" + titulo + "</p>" +
-                "</div>";
               const doc =
                 "<!DOCTYPE html><html lang=\"pt-BR\"><head>" +
                 "<meta charset=\"UTF-8\">" +
                 "<title>VoyagerAI - " + titulo + "</title>" +
                 "<style>" + css + "</style>" +
                 "</head><body>" +
-                header +
+                "<div class=\"header\">" +
+                "<h1>\u2708 VOYAGERAI</h1>" +
+                "<p style=\"color:#555;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p>" +
+                "<p style=\"color:#777;font-size:9pt;margin-top:2pt\">" + titulo + "</p>" +
+                "</div>" +
                 planEl.innerHTML +
                 "</body></html>";
               const blob = new Blob([doc], { type: "text/html;charset=utf-8" });
@@ -815,16 +800,17 @@ const planCSS = `
   .md-li { margin:0.4rem 0 0.4rem 1.6rem; line-height:1.8; color:#B8B8C8; }
   .md-oli span { color:#C8A96E; font-weight:700; margin-right:4px; }
 
-  .tbl-wrap { overflow-x:auto; margin:1.5rem 0; border-radius:10px; }
-  .md-table { border-collapse:collapse; width:100%; min-width:360px; }
-  .md-table th { padding:10px 14px; background:#1A1A2A; border:1px solid #2A2A3A; color:#C8A96E; font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; text-align:left; }
-  .md-table td { padding:10px 14px; border:1px solid #2A2A3A; font-size:0.88rem; color:#C0C0D0; vertical-align:top; }
-  .md-table tbody tr:nth-child(even) td { background:rgba(255,255,255,0.03); }
+  .tbl-wrap { overflow-x:auto; margin:1.2rem 0; }
+  .md-table { border-collapse:collapse; width:100%; min-width:340px; }
+  .md-table th { padding:9px 13px; background:#1A1A2A; border:1px solid #2A2A3A; color:#C8A96E; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; text-align:left; }
+  .md-table td { padding:9px 13px; border:1px solid #2A2A3A; font-size:0.87rem; color:#C8C8D8; vertical-align:top; }
+  .md-table tbody tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
   .md-table tbody tr:hover td { background:rgba(200,169,110,0.05); }
+  .md-link { color:#C8A96E !important; text-decoration:underline; word-break:break-all; }
+  .md-h4 { font-size:1rem; color:#E8D5A3; margin:1.4rem 0 0.5rem; font-weight:700; }
+  .md-strong { color:#E8D5A3; }
+  .md-num { color:#C8A96E; font-weight:700; }
   .md-hr { border:none; border-top:1px solid #2A2A3A; margin:1.5rem 0; }
-  .md-h4 { font-size:1rem; color:#E8D5A3; margin:1.5rem 0 0.5rem; font-weight:700; }
-  .md-link { color:#C8A96E !important; text-decoration:underline; word-break:break-all; cursor:pointer; }
-  .md-link:hover { color:#E8D5A3 !important; }
   strong { color:#E8D5A3; font-weight:600; }
   em { color:#A8A8C8; font-style:italic; }
 
@@ -957,4 +943,3 @@ const styles = {
   downloadBtn: { padding:"12px 32px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em" },
   newPlanBtn: { padding:"12px 32px", background:"transparent", border:"1px solid #2A2A3A", borderRadius:10, color:"#6A6A8A", cursor:"pointer", fontSize:14, fontWeight:500, fontFamily:"'DM Sans',sans-serif" },
 };
-
