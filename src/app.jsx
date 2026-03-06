@@ -19,6 +19,37 @@ function formatPlanContent(text) {
   let tableRows = [];
   let inTable = false;
 
+  const fmtCell = (c) => c
+    .replace(/\*\*(.+?)\*\*/g, "<strong style=\"color:#E8D5A3;font-weight:700\">$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>");
+
+  const buildTable = (rows) => {
+    let html = "<div style=\"overflow-x:auto;margin:1.4rem 0;border-radius:10px;border:1px solid #2A2A3A\">" +
+      "<table style=\"border-collapse:collapse;width:100%;min-width:340px\">";
+    html += "<thead><tr>";
+    rows[0].forEach(c => {
+      html += "<th style=\"padding:11px 15px;background:linear-gradient(135deg,#1A1A2E,#12122A);border-bottom:2px solid #C8A96E;color:#C8A96E;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;text-align:left;font-weight:700\">" + fmtCell(c) + "</th>";
+    });
+    html += "</tr></thead><tbody>";
+    for (let r = 1; r < rows.length; r++) {
+      const isTotal = rows[r].some(c => /total|TOTAL/i.test(c));
+      const rowBg = isTotal ? "background:rgba(200,169,110,0.12);border-top:2px solid rgba(200,169,110,0.4);" : "";
+      html += "<tr>";
+      rows[r].forEach((c, ci) => {
+        const isLabel = ci === 0;
+        const baseStyle = "padding:10px 15px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.88rem;vertical-align:middle;" + rowBg;
+        const extraStyle = isLabel
+          ? "color:#E8D5A3;font-weight:600;background:rgba(200,169,110,0.04);"
+          : "color:#C8C8D8;text-align:right;";
+        const totalStyle = isTotal ? "color:#C8A96E;font-weight:700;font-size:0.92rem;" : "";
+        html += "<td style=\"" + baseStyle + extraStyle + totalStyle + "\">" + fmtCell(c) + "</td>";
+      });
+      html += "</tr>";
+    }
+    html += "</tbody></table></div>";
+    return html;
+  };
+
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
     const trimmed = raw.trim();
@@ -31,17 +62,8 @@ function formatPlanContent(text) {
       // skip
     } else {
       if (inTable && tableRows.length > 0) {
-        let html = "<table class=\"ph-table\"><thead><tr>";
-        tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
-        html += "</tr></thead><tbody>";
-        for (let r = 1; r < tableRows.length; r++) {
-          html += "<tr>";
-          tableRows[r].forEach(c => { html += "<td>" + c + "</td>"; });
-          html += "</tr>";
-        }
-        html += "</tbody></table>";
         const ph = "TBLPH" + tables.length + "TBLEND";
-        tables.push(html);
+        tables.push(buildTable(tableRows));
         result.push(ph);
         tableRows = []; inTable = false;
       }
@@ -49,17 +71,9 @@ function formatPlanContent(text) {
     }
   }
   if (inTable && tableRows.length > 0) {
-    let html = "<table class=\"ph-table\"><thead><tr>";
-    tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
-    html += "</tr></thead><tbody>";
-    for (let r = 1; r < tableRows.length; r++) {
-      html += "<tr>";
-      tableRows[r].forEach(c => { html += "<td>" + c + "</td>"; });
-      html += "</tr>";
-    }
-    html += "</tbody></table>";
     const ph = "TBLPH" + tables.length + "TBLEND";
-    tables.push(html); result.push(ph);
+    tables.push(buildTable(tableRows));
+    result.push(ph);
   }
 
   let out = result.join("\n")
@@ -96,9 +110,9 @@ function downloadHtml(contentHtml, titulo) {
     "li{margin:3pt 0 3pt 16pt;color:#111;}" +
     "strong{color:#5A3A00;}em{color:#333;}" +
     "a{color:#8B6914;word-break:break-all;text-decoration:underline;}" +
-    ".ph-table{border-collapse:collapse;width:100%;margin:10pt 0;}" +
-    ".ph-table th{padding:7pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
-    ".ph-table td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#111;}" +
+    ".ph-table,.md-table{border-collapse:collapse;width:100%;margin:10pt 0;}" +
+    ".ph-table th,.md-table th{padding:7pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
+    ".ph-table td,.md-table td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#111;}" +
     ".ph-table tbody tr:nth-child(even) td{background:#FAFAF7;}" +
     "hr{border:none;border-top:1px solid #CCC;margin:12pt 0;}" +
     ".header{text-align:center;padding-bottom:12pt;margin-bottom:20pt;border-bottom:2px solid #C8A96E;}" +
