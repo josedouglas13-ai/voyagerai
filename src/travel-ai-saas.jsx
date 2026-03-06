@@ -342,6 +342,29 @@ CNPJ: 11.915.734/0001-17
     let tableRows = [];
     let inTable = false;
 
+    const fmtCell = (c) => c
+      .replace(/\*\*(.+?)\*\*/g, "<strong class=\"md-strong\">$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>");
+
+    const buildTable = (rows) => {
+      let html = "<div class=\"tbl-wrap\"><table class=\"md-table\">";
+      html += "<thead><tr>";
+      rows[0].forEach(c => { html += "<th>" + fmtCell(c) + "</th>"; });
+      html += "</tr></thead><tbody>";
+      for (let r = 1; r < rows.length; r++) {
+        const isTotal = rows[r].some(c => /total|TOTAL/i.test(c));
+        const rowClass = isTotal ? " class=\"tr-total\"" : "";
+        html += "<tr" + rowClass + ">";
+        rows[r].forEach((c, ci) => {
+          const cls = ci === 0 ? " class=\"td-label\"" : " class=\"td-val\"";
+          html += "<td" + cls + ">" + fmtCell(c) + "</td>";
+        });
+        html += "</tr>";
+      }
+      html += "</tbody></table></div>";
+      return html;
+    };
+
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
       const trimmed = raw.trim();
@@ -354,17 +377,8 @@ CNPJ: 11.915.734/0001-17
         // skip
       } else {
         if (inTable && tableRows.length > 0) {
-          let html = "<div class=\"tbl-wrap\"><table class=\"md-table\"><thead><tr>";
-          tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
-          html += "</tr></thead><tbody>";
-          for (let r = 1; r < tableRows.length; r++) {
-            html += "<tr>";
-            tableRows[r].forEach(c => { html += "<td>" + c + "</td>"; });
-            html += "</tr>";
-          }
-          html += "</tbody></table></div>";
           const ph = "TBLPH" + tables.length + "TBLEND";
-          tables.push(html);
+          tables.push(buildTable(tableRows));
           result.push(ph);
           tableRows = []; inTable = false;
         }
@@ -372,17 +386,9 @@ CNPJ: 11.915.734/0001-17
       }
     }
     if (inTable && tableRows.length > 0) {
-      let html = "<div class=\"tbl-wrap\"><table class=\"md-table\"><thead><tr>";
-      tableRows[0].forEach(c => { html += "<th>" + c + "</th>"; });
-      html += "</tr></thead><tbody>";
-      for (let r = 1; r < tableRows.length; r++) {
-        html += "<tr>";
-        tableRows[r].forEach(c => { html += "<td>" + c + "</td>"; });
-        html += "</tr>";
-      }
-      html += "</tbody></table></div>";
       const ph = "TBLPH" + tables.length + "TBLEND";
-      tables.push(html); result.push(ph);
+      tables.push(buildTable(tableRows));
+      result.push(ph);
     }
 
     let out = result.join("\n")
@@ -800,12 +806,14 @@ const planCSS = `
   .md-li { margin:0.4rem 0 0.4rem 1.6rem; line-height:1.8; color:#B8B8C8; }
   .md-oli span { color:#C8A96E; font-weight:700; margin-right:4px; }
 
-  .tbl-wrap { overflow-x:auto; margin:1.2rem 0; }
+  .tbl-wrap { overflow-x:auto; margin:1.4rem 0; border-radius:10px; border:1px solid #2A2A3A; }
   .md-table { border-collapse:collapse; width:100%; min-width:340px; }
-  .md-table th { padding:9px 13px; background:#1A1A2A; border:1px solid #2A2A3A; color:#C8A96E; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; text-align:left; }
-  .md-table td { padding:9px 13px; border:1px solid #2A2A3A; font-size:0.87rem; color:#C8C8D8; vertical-align:top; }
-  .md-table tbody tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
-  .md-table tbody tr:hover td { background:rgba(200,169,110,0.05); }
+  .md-table th { padding:11px 15px; background:linear-gradient(135deg,#1A1A2E,#12122A); border-bottom:2px solid #C8A96E; color:#C8A96E; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; text-align:left; font-weight:700; }
+  .md-table td { padding:10px 15px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.88rem; color:#D0D0E0; vertical-align:middle; }
+  .md-table .td-label { color:#E8D5A3; font-weight:600; background:rgba(200,169,110,0.04); }
+  .md-table .td-val { color:#C8C8D8; text-align:right; font-variant-numeric:tabular-nums; }
+  .md-table tbody tr:hover td { background:rgba(200,169,110,0.06); }
+  .md-table .tr-total td { background:rgba(200,169,110,0.12) !important; border-top:2px solid rgba(200,169,110,0.4); color:#C8A96E !important; font-weight:700; font-size:0.92rem; }
   .md-link { color:#C8A96E !important; text-decoration:underline; word-break:break-all; }
   .md-h4 { font-size:1rem; color:#E8D5A3; margin:1.4rem 0 0.5rem; font-weight:700; }
   .md-strong { color:#E8D5A3; }
