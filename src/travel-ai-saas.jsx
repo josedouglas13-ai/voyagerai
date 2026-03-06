@@ -221,10 +221,30 @@ Após os links, inclua:
 [Dia a dia detalhado com horários, atrações, dicas insider e tempo em cada local]
 
 ### 🍽️ RESTAURANTES IMPERDÍVEIS
-[5-8 restaurantes com: nome, tipo de culinária, faixa de preço, prato recomendado e reserva necessária?]
+Liste 6-8 restaurantes ideais para este perfil de viajante. Apresente OBRIGATORIAMENTE em tabela Markdown:
+
+| # | Nome | Culinária | Faixa de Preço/pessoa | Prato Estrela | Reserva | Destaque |
+|---|------|-----------|-----------------------|---------------|---------|----------|
+| 1 | [nome] | [tipo] | R$ [min]-[max] | [prato] | [Sim/Não/Recomendada] | [diferencial] |
+
+Após a tabela, para cada restaurante inclua links no formato abaixo (substitua NOME_RESTAURANTE e CIDADE pelos valores reais com + entre palavras):
+
+🗺️ **[Nome do Restaurante]:** https://www.google.com/maps/search/NOME_RESTAURANTE+CIDADE
+📱 **Reservas:** https://www.google.com/search?q=reserva+NOME_RESTAURANTE+CIDADE
 
 ### 📄 DOCUMENTAÇÃO NECESSÁRIA
-[Visto, seguro viagem, vacinas, requisitos de entrada — específico para brasileiro visitando ${formData.destino}]
+Liste os requisitos de entrada para brasileiro visitando ${formData.destino}. Apresente em duas tabelas:
+
+**Tabela 1 — Documentos:**
+| Documento | Obrigatório? | Observação |
+|-----------|-------------|------------|
+| [documento] | ✅ Sim / ❌ Não / ⚠️ Recomendado | [detalhe] |
+
+**Tabela 2 — Saúde e Seguros:**
+| Item | Necessário? | Detalhe |
+|------|------------|---------|
+| Vacina [nome] | ✅ / ❌ / ⚠️ | [detalhe] |
+| Seguro Viagem | ✅ / ❌ / ⚠️ | [cobertura mínima recomendada] |
 
 ### 💰 PLANEJAMENTO FINANCEIRO
 [Tabela detalhada: Categoria | Alternativa Econômica | Custo-Benefício | Premium]
