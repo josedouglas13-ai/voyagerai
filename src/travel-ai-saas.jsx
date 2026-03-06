@@ -465,49 +465,48 @@ CNPJ: 11.915.734/0001-17
             <button style={styles.downloadBtn} onClick={() => {
               const planEl = document.querySelector(".plan-markdown");
               if (!planEl) return;
-              const pdfCSS = [
-                "*{box-sizing:border-box;margin:0;padding:0;}",
-                "body{background:white;color:#1A1A2A;font-family:Arial,sans-serif;font-size:11pt;line-height:1.7;padding:20mm;}",
-                "h1{font-size:20pt;color:#7A5010;margin:16pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:4pt;}",
-                "h2{font-size:14pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}",
-                "h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:bold;}",
-                "h4{font-size:10pt;color:#444;margin:8pt 0 3pt;font-weight:bold;}",
-                "li{margin:3pt 0 3pt 16pt;}strong{color:#5A3A00;}a{color:#8B6914;}",
-                ".tbl-wrap{margin:10pt 0;}.md-table{border-collapse:collapse;width:100%;}",
-                ".md-table th{padding:6pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}",
-                ".md-table td{padding:6pt 10pt;border:1px solid #CCC;font-size:9pt;}",
-                ".md-table tbody tr:nth-child(even) td{background:#FAFAF7;}",
-                ".md-hr{border:none;border-top:1px solid #CCC;margin:10pt 0;}",
-                ".header{text-align:center;padding-bottom:12pt;margin-bottom:16pt;border-bottom:2px solid #C8A96E;}",
-                "@page{margin:15mm 20mm;size:A4;}",
-                "@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}"
-              ].join("");
-              const html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>VoyagerAI</title>"
-                + "<style>" + pdfCSS + "</style></head><body>"
-                + "<div class=\"header\"><h1>✈ VOYAGERAI</h1>"
-                + "<p style=\"color:#888;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p></div>"
-                + planEl.innerHTML + "</body></html>";
-              let iframe = document.getElementById("pdf-frame");
-              if (!iframe) {
-                iframe = document.createElement("iframe");
-                iframe.id = "pdf-frame";
-                iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
-                document.body.appendChild(iframe);
-              }
-              iframe.srcdoc = html;
-              iframe.onload = () => {
-                try {
-                  iframe.contentWindow.focus();
-                  iframe.contentWindow.print();
-                } catch(e) {
-                  const blob = new Blob([html], {type: "text/html"});
-                  const a = document.createElement("a");
-                  a.href = URL.createObjectURL(blob);
-                  a.download = "VoyagerAI-Plano.html";
-                  a.click();
-                }
-              };
-            }}>⬇ Baixar PDF</button>
+              const css =
+                "*{box-sizing:border-box;margin:0;padding:0;}" +
+                "body{background:white;color:#1A1A2A;font-family:Arial,sans-serif;font-size:11pt;line-height:1.8;padding:20mm;}" +
+                "h1{font-size:20pt;color:#7A5010;margin:16pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:4pt;}" +
+                "h2{font-size:14pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}" +
+                "h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:bold;}" +
+                "h4{font-size:10pt;color:#444;margin:8pt 0 3pt;font-weight:bold;}" +
+                "li{margin:3pt 0 3pt 16pt;}" +
+                "strong{color:#5A3A00;}em{color:#555;}" +
+                "a{color:#8B6914;word-break:break-all;text-decoration:underline;}" +
+                "table{border-collapse:collapse;width:100%;margin:10pt 0;}" +
+                "th{padding:7pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
+                "td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}" +
+                "tr:nth-child(even) td{background:#FAFAF7;}" +
+                "hr{border:none;border-top:1px solid #CCC;margin:12pt 0;}" +
+                ".header{text-align:center;padding-bottom:12pt;margin-bottom:20pt;border-bottom:2px solid #C8A96E;}";
+              const titulo = formData.origem + " - " + formData.destino;
+              const header =
+                "<div class=\"header\">" +
+                "<h1>\u2708 VOYAGERAI</h1>" +
+                "<p style=\"color:#888;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p>" +
+                "<p style=\"color:#aaa;font-size:9pt;margin-top:2pt\">" + titulo + "</p>" +
+                "</div>";
+              const doc =
+                "<!DOCTYPE html><html lang=\"pt-BR\"><head>" +
+                "<meta charset=\"UTF-8\">" +
+                "<title>VoyagerAI - " + titulo + "</title>" +
+                "<style>" + css + "</style>" +
+                "</head><body>" +
+                header +
+                planEl.innerHTML +
+                "</body></html>";
+              const blob = new Blob([doc], { type: "text/html;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "VoyagerAI-" + formData.destino.replace(/\s+/g, "-") + ".html";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }}>⬇ Baixar Plano (.html)</button>
             <button style={styles.newPlanBtn} onClick={() => {
               setPlanGenerated(false);
               setDisplayText("");
