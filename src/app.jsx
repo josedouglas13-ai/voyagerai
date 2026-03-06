@@ -10,6 +10,131 @@ const supabase = createClient(
 
 const ADMIN_EMAIL = "josedouglas13@gmail.com"; // seu email de admin
 
+// ── Renderiza markdown com tabelas e links clicáveis ──────────────────────
+function formatPlanContent(text) {
+  if (!text) return "";
+  const lines = text.split("\n");
+  const result = [];
+  const tables = [];
+  let tableRows = [];
+  let inTable = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+    const isSep = /^\|[-:\s|]+\|$/.test(trimmed);
+    const isRow = trimmed.startsWith("|") && trimmed.endsWith("|") && !isSep;
+
+    if (isRow) {
+      inTable = true;
+      tableRows.push(trimmed.slice(1, -1).split("|").map(c => c.trim()));
+    } else if (isSep) {
+      // skip
+    } else {
+      if (inTable && tableRows.length > 0) {
+        let html = '<div style="overflow-x:auto;margin:1rem 0"><table style="border-collapse:collapse;width:100%;min-width:360px"><thead><tr>';
+        tableRows[0].forEach(c => { html += '<th style="padding:8px 12px;background:#1A1A2A;border:1px solid #2A2A3A;color:#C8A96E;font-size:0.82rem;text-transform:uppercase;text-align:left">' + c + "</th>"; });
+        html += "</tr></thead><tbody>";
+        for (let r = 1; r < tableRows.length; r++) {
+          html += '<tr>';
+          tableRows[r].forEach(c => { html += '<td style="padding:8px 12px;border:1px solid #2A2A3A;font-size:0.87rem;color:#C0C0D0">' + c + "</td>"; });
+          html += "</tr>";
+        }
+        html += "</tbody></table></div>";
+        const ph = "TBLPH" + tables.length + "TBLEND";
+        tables.push(html);
+        result.push(ph);
+        tableRows = []; inTable = false;
+      }
+      result.push(raw);
+    }
+  }
+  if (inTable && tableRows.length > 0) {
+    let html = '<div style="overflow-x:auto;margin:1rem 0"><table style="border-collapse:collapse;width:100%;min-width:360px"><thead><tr>';
+    tableRows[0].forEach(c => { html += '<th style="padding:8px 12px;background:#1A1A2A;border:1px solid #2A2A3A;color:#C8A96E;font-size:0.82rem;text-transform:uppercase;text-align:left">' + c + "</th>"; });
+    html += "</tr></thead><tbody>";
+    for (let r = 1; r < tableRows.length; r++) {
+      html += '<tr>';
+      tableRows[r].forEach(c => { html += '<td style="padding:8px 12px;border:1px solid #2A2A3A;font-size:0.87rem;color:#C0C0D0">' + c + "</td>"; });
+      html += "</tr>";
+    }
+    html += "</tbody></table></div>";
+    const ph = "TBLPH" + tables.length + "TBLEND";
+    tables.push(html);
+    result.push(ph);
+  }
+
+  let out = result.join("\n")
+    .replace(/^#### (.+)$/gm, '<h4 style="font-size:1rem;color:#E8D5A3;margin:1.2rem 0 0.4rem;font-weight:700">$1</h4>')
+    .replace(/^### (.+)$/gm,  '<h3 style="font-size:1.1rem;color:#F0E8D0;margin:1.6rem 0 0.5rem;font-weight:700">$1</h3>')
+    .replace(/^## (.+)$/gm,   '<h2 style="font-family:Cormorant Garamond,serif;font-size:1.5rem;color:#C8A96E;margin:2rem 0 0.8rem;border-bottom:1px solid #2A2A3A;padding-bottom:0.4rem">$1</h2>')
+    .replace(/^# (.+)$/gm,    '<h1 style="font-family:Cormorant Garamond,serif;font-size:2rem;color:#E8D5A3;margin:2rem 0 1rem">$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#E8D5A3">$1</strong>')
+    .replace(/\*(.+?)\*/g,   '<em style="color:#A8A8C8">$1</em>')
+    .replace(/^[-*] (.+)$/gm, '<li style="margin:0.3rem 0 0.3rem 1.2rem;color:#B8B8C8">$1</li>')
+    .replace(/^(\d+)\. (.+)$/gm, '<li style="margin:0.3rem 0 0.3rem 1.2rem;color:#B8B8C8"><span style="color:#C8A96E;font-weight:700">$1.</span> $2</li>')
+    .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #2A2A3A;margin:1.5rem 0"/>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener" style="color:#C8A96E;text-decoration:underline;word-break:break-all">$1 ↗</a>')
+    .replace(/(^|[\s>])(https?:\/\/[^\s<)"']+)/g,
+      '$1<a href="$2" target="_blank" rel="noopener" style="color:#C8A96E;text-decoration:underline;word-break:break-all">$2 ↗</a>')
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, "<br/>");
+
+  tables.forEach((html, idx) => {
+    out = out.split("TBLPH" + idx + "TBLEND").join(html);
+  });
+  return out;
+}
+
+// ── Gera e imprime PDF do plano ────────────────────────────────────────────
+function downloadHtml(contentHtml, titulo) {
+  const css =
+    "*{box-sizing:border-box;margin:0;padding:0;}" +
+    "body{background:white;color:#1A1A2A;font-family:Arial,sans-serif;font-size:11pt;line-height:1.8;padding:20mm;}" +
+    "h1{font-size:20pt;color:#7A5010;margin:16pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:4pt;}" +
+    "h2{font-size:14pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}" +
+    "h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:bold;}" +
+    "h4{font-size:10pt;color:#444;margin:8pt 0 3pt;font-weight:bold;}" +
+    "li{margin:3pt 0 3pt 16pt;color:#1A1A2A;}" +
+    "strong{color:#5A3A00;}em{color:#555;}" +
+    "a{color:#8B6914;word-break:break-all;text-decoration:underline;}" +
+    "table{border-collapse:collapse;width:100%;margin:10pt 0;}" +
+    "th{padding:7pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
+    "td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}" +
+    "tr:nth-child(even) td{background:#FAFAF7;}" +
+    "hr{border:none;border-top:1px solid #CCC;margin:12pt 0;}" +
+    ".header{text-align:center;padding-bottom:12pt;margin-bottom:20pt;border-bottom:2px solid #C8A96E;}";
+
+  const header =
+    "<div class=\"header\">" +
+    "<h1>\u2708 VOYAGERAI</h1>" +
+    "<p style=\"color:#888;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p>" +
+    "<p style=\"color:#aaa;font-size:9pt;margin-top:2pt\">" + titulo + "</p>" +
+    "</div>";
+
+  const doc =
+    "<!DOCTYPE html><html lang=\"pt-BR\"><head>" +
+    "<meta charset=\"UTF-8\">" +
+    "<title>VoyagerAI - " + titulo + "</title>" +
+    "<style>" + css + "</style>" +
+    "</head><body>" +
+    header +
+    contentHtml +
+    "</body></html>";
+
+  const blob = new Blob([doc], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "VoyagerAI-" + titulo.replace(/\s+/g, "-") + ".html";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
 export default function App() {
   const { user, loading, signOut } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -19,15 +144,7 @@ export default function App() {
 
 function Dashboard({ user, onSignOut }) {
   const [view, setView] = useState("home");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const isAdmin = user.email === ADMIN_EMAIL;
-
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   const navItems = [
     { id: "home", icon: "🏠", label: "Início" },
@@ -37,27 +154,10 @@ function Dashboard({ user, onSignOut }) {
     ...(isAdmin ? [{ id: "admin", icon: "⚙️", label: "Admin" }] : []),
   ];
 
-  const navigateTo = (id) => { setView(id); setMobileMenuOpen(false); };
-
   return (
     <div style={s.root}>
       <style>{css}</style>
-
-      {/* Mobile top bar */}
-      {isMobile && (
-        <div style={s.mobileTopBar}>
-          <div style={s.mobileLogo}>✈ VOYAGER<span style={{ color: "#C8A96E" }}>AI</span></div>
-          <button style={s.hamburger} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? "✕" : "☰"}
-          </button>
-        </div>
-      )}
-
-      {/* Overlay */}
-      {mobileMenuOpen && <div style={s.mobileOverlay} onClick={() => setMobileMenuOpen(false)} />}
-
-      {/* Sidebar */}
-      <aside style={{ ...s.sidebar, ...(isMobile && !mobileMenuOpen ? { display: "none" } : {}), ...(isMobile && mobileMenuOpen ? s.sidebarMobileOpen : {}) }}>
+      <aside style={s.sidebar}>
         <div style={s.sidebarLogo}>
           ✈ VOYAGER<span style={{ color: "#C8A96E" }}>AI</span>
         </div>
@@ -66,7 +166,7 @@ function Dashboard({ user, onSignOut }) {
             <button
               key={item.id}
               style={{ ...s.navItem, ...(view === item.id ? s.navItemActive : {}) }}
-              onClick={() => navigateTo(item.id)}
+              onClick={() => setView(item.id)}
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
@@ -86,36 +186,18 @@ function Dashboard({ user, onSignOut }) {
           <button style={s.signOutBtn} onClick={onSignOut}>Sair</button>
         </div>
       </aside>
-
-      {/* Main content */}
-      <main style={{ ...s.main, ...(isMobile ? { paddingTop: 72, paddingBottom: 80, paddingLeft: 16, paddingRight: 16 } : {}) }}>
-        {view === "home" && <HomeView user={user} setView={setView} isMobile={isMobile} />}
+      <main style={s.main}>
+        {view === "home" && <HomeView user={user} setView={setView} />}
         {view === "newPlan" && <TravelAISaaS user={user} onPlanSaved={() => setView("history")} />}
         {view === "history" && <HistoryView user={user} />}
         {view === "account" && <AccountView user={user} />}
         {view === "admin" && isAdmin && <AdminView />}
       </main>
-
-      {/* Mobile bottom nav */}
-      {isMobile && (
-        <nav style={s.mobileBottomNav}>
-          {navItems.slice(0, 4).map((item) => (
-            <button
-              key={item.id}
-              style={{ ...s.mobileNavBtn, ...(view === item.id ? s.mobileNavBtnActive : {}) }}
-              onClick={() => navigateTo(item.id)}
-            >
-              <span style={{ fontSize: 22 }}>{item.icon}</span>
-              <span style={{ fontSize: 10 }}>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
     </div>
   );
 }
 
-function HomeView({ user, setView, isMobile }) {
+function HomeView({ user, setView }) {
   const [stats, setStats] = useState({ total: 0, lastPlan: null });
   const name = user.user_metadata?.full_name?.split(" ")[0] || "Viajante";
   const hour = new Date().getHours();
@@ -142,7 +224,7 @@ function HomeView({ user, setView, isMobile }) {
       {/* HERO */}
       <div style={sh.hero}>
         <div style={sh.heroOverlay} />
-        <div style={{ ...sh.heroContent, padding: isMobile ? "32px 20px" : "48px 40px" }}>
+        <div style={sh.heroContent}>
           <div style={sh.heroBadge}>{greeting}, {name} ✈️</div>
           <h1 style={sh.heroTitle}>Para onde vamos<br/>hoje?</h1>
           <p style={sh.heroSub}>Nossa IA cria seu roteiro completo com voos, hotéis, restaurantes e emergências em minutos.</p>
@@ -158,7 +240,7 @@ function HomeView({ user, setView, isMobile }) {
       </div>
 
       {/* STATS */}
-      <div style={{ ...sh.statsRow, gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)" }}>
+      <div style={sh.statsRow}>
         {[
           { icon: "🗺️", label: "Planos Gerados", value: stats.total, color: "#C8A96E" },
           { icon: "⏱️", label: "Tempo Médio", value: "~2min", color: "#6E9EC8" },
@@ -186,12 +268,12 @@ function HomeView({ user, setView, isMobile }) {
           </div>
           <button style={sh.sectionLink} onClick={() => setView("newPlan")}>Planejar viagem →</button>
         </div>
-        <div style={{ ...sh.destGrid, gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(6,1fr)" }}>
+        <div style={sh.destGrid}>
           {destinations.map((d) => (
             <div key={d.city} style={sh.destCard} onClick={() => setView("newPlan")}>
-              <div style={{ ...sh.destEmoji, fontSize: isMobile ? 24 : 32 }}>{d.emoji}</div>
+              <div style={sh.destEmoji}>{d.emoji}</div>
               <div style={sh.destTag}>{d.tag}</div>
-              <div style={{ ...sh.destCity, fontSize: isMobile ? 11 : 14 }}>{d.city}</div>
+              <div style={sh.destCity}>{d.city}</div>
               <div style={sh.destCountry}>{d.country}</div>
               <div style={sh.destTemp}>{d.temp}</div>
             </div>
@@ -202,7 +284,7 @@ function HomeView({ user, setView, isMobile }) {
       {/* QUICK ACTIONS */}
       <div style={sh.section}>
         <div style={sh.sectionLabel}>✦ Acesso Rápido</div>
-        <div style={{ ...sh.quickGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)" }}>
+        <div style={sh.quickGrid}>
           <div style={sh.quickCard} onClick={() => setView("newPlan")}>
             <span style={sh.quickIcon}>✈️</span>
             <div style={sh.quickTitle}>Novo Plano</div>
@@ -236,13 +318,19 @@ function HistoryView({ user }) {
   }, [user.id]);
 
   if (selected) {
+    const htmlContent = formatPlanContent(selected.conteudo || "");
     return (
       <div style={s.view}>
-        <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20, flexWrap:"wrap" }}>
+          <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
+          <button style={s.pdfBtn} onClick={() => downloadHtml(htmlContent, selected.origem + " → " + selected.destino)}>
+            ⬇ Baixar Plano (.html)
+          </button>
+        </div>
         <div style={s.planViewCard}>
           <h2 style={s.planViewTitle}>{selected.origem} → {selected.destino}</h2>
           <p style={s.planViewMeta}>{selected.plano_nome} · {new Date(selected.created_at).toLocaleDateString("pt-BR")}</p>
-          <div style={s.planViewContent} dangerouslySetInnerHTML={{ __html: selected.conteudo?.replace(/\n/g, "<br/>") }} />
+          <div style={{ ...s.planViewContent, fontFamily:"DM Sans,sans-serif" }} dangerouslySetInnerHTML={{ __html: htmlContent }} />
         </div>
       </div>
     );
@@ -298,14 +386,20 @@ function AdminView() {
   );
 
   if (selected) {
+    const htmlContent = formatPlanContent(selected.conteudo || "");
     return (
       <div style={s.view}>
-        <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20, flexWrap:"wrap" }}>
+          <button style={s.backBtn2} onClick={() => setSelected(null)}>← Voltar</button>
+          <button style={s.pdfBtn} onClick={() => downloadHtml(htmlContent, selected.origem + " → " + selected.destino)}>
+            ⬇ Baixar Plano (.html)
+          </button>
+        </div>
         <div style={s.planViewCard}>
           <p style={{ color: "#C8A96E", fontSize: 12, marginBottom: 8 }}>👤 {selected.user_email}</p>
           <h2 style={s.planViewTitle}>{selected.origem} → {selected.destino}</h2>
           <p style={s.planViewMeta}>{selected.plano_nome} · {new Date(selected.created_at).toLocaleDateString("pt-BR")}</p>
-          <div style={s.planViewContent} dangerouslySetInnerHTML={{ __html: selected.conteudo?.replace(/\n/g, "<br/>") }} />
+          <div style={{ ...s.planViewContent, fontFamily:"DM Sans,sans-serif" }} dangerouslySetInnerHTML={{ __html: htmlContent }} />
         </div>
       </div>
     );
@@ -477,14 +571,5 @@ const s = {
   accountName: { fontSize:18, fontWeight:600, color:"#E8D5A3" },
   accountEmail: { fontSize:14, color:"#6A6A8A" },
   accountMeta: { fontSize:12, color:"#3A3A5A", marginTop:4 },
-  // Mobile styles
-  mobileTopBar: { position:"fixed", top:0, left:0, right:0, zIndex:150, background:"rgba(8,8,16,0.97)", borderBottom:"1px solid #1A1A28", padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", backdropFilter:"blur(10px)" },
-  mobileLogo: { fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, color:"#F0E8D0", letterSpacing:"0.12em" },
-  hamburger: { background:"transparent", border:"none", color:"#C8A96E", fontSize:24, cursor:"pointer", padding:"4px 8px" },
-  mobileOverlay: { position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:149 },
-  sidebarMobileOpen: { position:"fixed", top:0, left:0, zIndex:200, height:"100vh", display:"flex" },
-  mobileBottomNav: { position:"fixed", bottom:0, left:0, right:0, zIndex:150, background:"rgba(8,8,16,0.97)", borderTop:"1px solid #1A1A28", padding:"8px 0 12px", display:"flex", justifyContent:"space-around", backdropFilter:"blur(10px)" },
-  mobileNavBtn: { display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"transparent", border:"none", color:"#4A4A6A", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", padding:"4px 16px", minWidth:60 },
-  mobileNavBtnActive: { color:"#C8A96E" },
+  pdfBtn: { padding:"9px 20px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:8, color:"#080810", cursor:"pointer", fontSize:13, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em" },
 };
-
