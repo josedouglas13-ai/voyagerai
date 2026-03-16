@@ -32,31 +32,41 @@ const INTERESTS = [
 
 const PLANS = [
   {
-    id: "basico",
-    name: "Plano Essencial",
-    price: "R$ 39",
-    priceNum: 39,
-    desc: "Roteiro completo para viajantes práticos",
-    features: ["Roteiro diário detalhado", "Top 5 restaurantes", "Dicas de hospedagem", "Alertas importantes", "PDF para download"],
-    color: "#C8A96E",
-  },
-  {
-    id: "premium",
+    id: "estrategico",
     name: "Plano Estratégico",
-    price: "R$ 79",
-    priceNum: 79,
-    desc: "Análise completa com alternativas e finanças",
-    features: ["Tudo do Essencial", "Análise comparativa de voos", "Planejamento financeiro detalhado", "Alternativa econômica + otimizada", "Checklist personalizado", "Suporte prioritário"],
-    color: "#E8D5A3",
+    price: "R$ 9,90",
+    priceNum: 9.9,
+    desc: "Roteiro completo gerado por IA em minutos",
+    features: [
+      "Roteiro diário detalhado",
+      "Análise de voos com links de busca",
+      "Hospedagem recomendada",
+      "Restaurantes imperdíveis",
+      "Planejamento financeiro",
+      "Checklist final",
+      "Alertas importantes",
+      "Contatos de emergência",
+      "PDF para download",
+    ],
+    color: "#C8A96E",
     highlight: true,
   },
   {
-    id: "vip",
-    name: "Plano VIP",
-    price: "R$ 149",
-    priceNum: 149,
-    desc: "Consultoria premium com experiências exclusivas",
-    features: ["Tudo do Estratégico", "Experiências exclusivas", "Restaurantes com reserva", "Transfers e logística", "3 revisões do plano", "WhatsApp direto"],
+    id: "_unused1",
+    name: "",
+    price: "",
+    priceNum: 0,
+    desc: "",
+    features: [],
+    color: "#C8A96E",
+  },
+  {
+    id: "_unused2",
+    name: "",
+    price: "",
+    priceNum: 0,
+    desc: "",
+    features: [],
     color: "#B8860B",
   },
 ];
@@ -77,7 +87,7 @@ export default function TravelAISaaS({ user, onPlanSaved }) {
     restricoes: "",
     prioridade: "custo_beneficio",
   });
-  const [selectedPlan, setSelectedPlan] = useState("premium");
+  const [selectedPlan, setSelectedPlan] = useState("estrategico");
   const [paymentStep, setPaymentStep] = useState("select");
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [planContent, setPlanContent] = useState("");
@@ -221,30 +231,10 @@ Após os links, inclua:
 [Dia a dia detalhado com horários, atrações, dicas insider e tempo em cada local]
 
 ### 🍽️ RESTAURANTES IMPERDÍVEIS
-Liste 6-8 restaurantes ideais para este perfil de viajante. Apresente OBRIGATORIAMENTE em tabela Markdown:
-
-| # | Nome | Culinária | Faixa de Preço/pessoa | Prato Estrela | Reserva | Destaque |
-|---|------|-----------|-----------------------|---------------|---------|----------|
-| 1 | [nome] | [tipo] | R$ [min]-[max] | [prato] | [Sim/Não/Recomendada] | [diferencial] |
-
-Após a tabela, para cada restaurante inclua links no formato abaixo (substitua NOME_RESTAURANTE e CIDADE pelos valores reais com + entre palavras):
-
-🗺️ **[Nome do Restaurante]:** https://www.google.com/maps/search/NOME_RESTAURANTE+CIDADE
-📱 **Reservas:** https://www.google.com/search?q=reserva+NOME_RESTAURANTE+CIDADE
+[5-8 restaurantes com: nome, tipo de culinária, faixa de preço, prato recomendado e reserva necessária?]
 
 ### 📄 DOCUMENTAÇÃO NECESSÁRIA
-Liste os requisitos de entrada para brasileiro visitando ${formData.destino}. Apresente em duas tabelas:
-
-**Tabela 1 — Documentos:**
-| Documento | Obrigatório? | Observação |
-|-----------|-------------|------------|
-| [documento] | ✅ Sim / ❌ Não / ⚠️ Recomendado | [detalhe] |
-
-**Tabela 2 — Saúde e Seguros:**
-| Item | Necessário? | Detalhe |
-|------|------------|---------|
-| Vacina [nome] | ✅ / ❌ / ⚠️ | [detalhe] |
-| Seguro Viagem | ✅ / ❌ / ⚠️ | [cobertura mínima recomendada] |
+[Visto, seguro viagem, vacinas, requisitos de entrada — específico para brasileiro visitando ${formData.destino}]
 
 ### 💰 PLANEJAMENTO FINANCEIRO
 [Tabela detalhada: Categoria | Alternativa Econômica | Custo-Benefício | Premium]
@@ -303,7 +293,7 @@ CNPJ: 11.915.734/0001-17
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 32000,
+          max_tokens: 8000,
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -317,7 +307,7 @@ CNPJ: 11.915.734/0001-17
       // Salvar plano no Supabase
       if (user) {
         const plan = PLANS.find((p) => p.id === selectedPlan);
-        const { error: saveError } = await supabase.from("planos").insert({
+        supabase.from("planos").insert({
           user_id: user.id,
           user_email: user.email,
           origem: formData.origem,
@@ -332,8 +322,6 @@ CNPJ: 11.915.734/0001-17
           plano_nome: plan?.name || "Plano",
           conteudo: text,
         });
-        if (saveError) console.error("Erro ao salvar:", saveError.message);
-        else if (onPlanSaved) onPlanSaved();
       }
 
       let i = 0;
@@ -358,81 +346,60 @@ CNPJ: 11.915.734/0001-17
     if (!text) return "";
     const lines = text.split("\n");
     const result = [];
-    const tables = [];
-    let tableRows = [];
     let inTable = false;
-
-    const fmtCell = (c) => c
-      .replace(/\*\*(.+?)\*\*/g, "<strong class=\"md-strong\">$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-    const buildTable = (rows) => {
-      let html = "<div class=\"tbl-wrap\"><table class=\"md-table\">";
-      html += "<thead><tr>";
-      rows[0].forEach(c => { html += "<th>" + fmtCell(c) + "</th>"; });
-      html += "</tr></thead><tbody>";
-      for (let r = 1; r < rows.length; r++) {
-        const isTotal = rows[r].some(c => /total|TOTAL/i.test(c));
-        const rowClass = isTotal ? " class=\"tr-total\"" : "";
-        html += "<tr" + rowClass + ">";
-        rows[r].forEach((c, ci) => {
-          const cls = ci === 0 ? " class=\"td-label\"" : " class=\"td-val\"";
-          html += "<td" + cls + ">" + fmtCell(c) + "</td>";
-        });
-        html += "</tr>";
-      }
-      html += "</tbody></table></div>";
-      return html;
-    };
+    let tableRows = [];
 
     for (let i = 0; i < lines.length; i++) {
-      const raw = lines[i];
-      const trimmed = raw.trim();
-      const isSep = /^\|[-:\s|]+\|$/.test(trimmed);
-      const isRow = trimmed.startsWith("|") && trimmed.endsWith("|") && !isSep;
-      if (isRow) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      const isTableRow = trimmed.startsWith("|") && trimmed.endsWith("|");
+      const isSeparator = trimmed.startsWith("|") && trimmed.replace(/[|:\-\s]/g, "") === "";
+
+      if (isTableRow && !isSeparator) {
         inTable = true;
-        tableRows.push(trimmed.slice(1,-1).split("|").map(c => c.trim()));
-      } else if (isSep) {
-        // skip
+        const cells = trimmed.slice(1, -1).split("|").map(c => c.trim());
+        tableRows.push(cells);
+      } else if (isSeparator) {
+        // skip separator
       } else {
-        if (inTable && tableRows.length > 0) {
-          const ph = "TBLPH" + tables.length + "TBLEND";
-          tables.push(buildTable(tableRows));
-          result.push(ph);
-          tableRows = []; inTable = false;
+        if (inTable) {
+          let html = "<table>";
+          tableRows.forEach((row, idx) => {
+            const tag = idx === 0 ? "th" : "td";
+            html += "<tr>" + row.map(c => "<" + tag + ">" + c + "</" + tag + ">").join("") + "</tr>";
+          });
+          html += "</table>";
+          result.push(html);
+          tableRows = [];
+          inTable = false;
         }
-        result.push(raw);
+        result.push(line);
       }
     }
-    if (inTable && tableRows.length > 0) {
-      const ph = "TBLPH" + tables.length + "TBLEND";
-      tables.push(buildTable(tableRows));
-      result.push(ph);
+    if (inTable && tableRows.length) {
+      let html = "<table>";
+      tableRows.forEach((row, idx) => {
+        const tag = idx === 0 ? "th" : "td";
+        html += "<tr>" + row.map(c => "<" + tag + ">" + c + "</" + tag + ">").join("") + "</tr>";
+      });
+      html += "</table>";
+      result.push(html);
     }
 
-    let out = result.join("\n")
-      .replace(/^#### (.+)$/gm, "<h4 class=\"md-h4\">$1</h4>")
-      .replace(/^### (.+)$/gm,  "<h3 class=\"md-h3\">$1</h3>")
-      .replace(/^## (.+)$/gm,   "<h2 class=\"md-h2\">$1</h2>")
-      .replace(/^# (.+)$/gm,    "<h1 class=\"md-h1\">$1</h1>")
-      .replace(/\*\*(.+?)\*\*/g, "<strong class=\"md-strong\">$1</strong>")
-      .replace(/\*(.+?)\*/g,   "<em>$1</em>")
-      .replace(/^[-*] (.+)$/gm, "<li class=\"md-li\">$1</li>")
-      .replace(/^(\d+)\. (.+)$/gm, "<li class=\"md-li\"><span class=\"md-num\">$1.</span> $2</li>")
-      .replace(/^---+$/gm, "<hr class=\"md-hr\"/>")
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-        "<a href=\"$2\" target=\"_blank\" rel=\"noopener\" class=\"md-link\">$1 ↗</a>")
-      .replace(/(^|[\s>])(https?:\/\/[^\s<)"\']+)/g,
-        "$1<a href=\"$2\" target=\"_blank\" rel=\"noopener\" class=\"md-link\">$2 ↗</a>")
-      .replace(/\n\n/g, "<br/><br/>")
+    return result.join("\n")
+      .replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 class="md-h1">$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/^- (.+)$/gm, '<li class="md-li">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gm, '<li class="md-li md-oli"><span>$1.</span> $2</li>')
+      .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #2A2A3A;margin:1rem 0"/>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#C8A96E">$1</a>')
+      .replace(/\n\n/g, '</p><p class="md-p">')
       .replace(/\n/g, "<br/>");
-
-    tables.forEach((html, idx) => {
-      out = out.split("TBLPH" + idx + "TBLEND").join(html);
-    });
-    return out;
   };
+
   const getDias = () => {
     if (!formData.dataIda || !formData.dataVolta) return null;
     return Math.ceil((new Date(formData.dataVolta) - new Date(formData.dataIda)) / (1000 * 60 * 60 * 24));
@@ -472,52 +439,14 @@ CNPJ: 11.915.734/0001-17
         {planGenerated && !generatingPlan && (
           <div style={styles.planFooter} className="no-print">
             <button style={styles.downloadBtn} onClick={() => {
-              const planEl = document.querySelector(".plan-markdown");
-              if (!planEl) return;
-              const css =
-                "*{box-sizing:border-box;margin:0;padding:0;}" +
-                "body{background:#fff;color:#111;font-family:Arial,sans-serif;font-size:11pt;line-height:1.8;padding:20mm;}" +
-                "h1{font-size:20pt;color:#7A5010;margin:16pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:4pt;}" +
-                "h2{font-size:14pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}" +
-                "h3{font-size:11pt;color:#222;margin:10pt 0 4pt;font-weight:bold;}" +
-                "h4{font-size:10pt;color:#333;margin:8pt 0 3pt;font-weight:bold;}" +
-                "li{margin:3pt 0 3pt 16pt;color:#111;}" +
-                "strong{color:#5A3A00;}em{color:#333;}" +
-                "a{color:#8B6914;word-break:break-all;text-decoration:underline;}" +
-                ".tbl-wrap{overflow-x:auto;margin:8pt 0;}" +
-                ".md-table{border-collapse:collapse;width:100%;}" +
-                ".md-table th{padding:6pt 10pt;border:1px solid #CCC;background:#F5EDD0;color:#7A5010;font-size:9pt;font-weight:bold;text-align:left;}" +
-                ".md-table td{padding:6pt 10pt;border:1px solid #CCC;font-size:9pt;color:#111;}" +
-                ".md-table tbody tr:nth-child(even) td{background:#FAFAF7;}" +
-                ".md-strong{color:#5A3A00;}.md-link{color:#8B6914;}.md-num{color:#8B6914;font-weight:bold;}" +
-                "hr,.md-hr{border:none;border-top:1px solid #CCC;margin:10pt 0;}" +
-                ".header{text-align:center;padding-bottom:12pt;margin-bottom:16pt;border-bottom:2px solid #C8A96E;}" +
-                "@page{margin:15mm 20mm;size:A4;}" +
-                "@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}";
-              const titulo = formData.origem + " - " + formData.destino;
-              const doc =
-                "<!DOCTYPE html><html lang=\"pt-BR\"><head>" +
-                "<meta charset=\"UTF-8\">" +
-                "<title>VoyagerAI - " + titulo + "</title>" +
-                "<style>" + css + "</style>" +
-                "</head><body>" +
-                "<div class=\"header\">" +
-                "<h1>\u2708 VOYAGERAI</h1>" +
-                "<p style=\"color:#555;font-size:10pt;margin-top:4pt\">Consultoria Estratégica de Viagens com IA</p>" +
-                "<p style=\"color:#777;font-size:9pt;margin-top:2pt\">" + titulo + "</p>" +
-                "</div>" +
-                planEl.innerHTML +
-                "</body></html>";
-              const blob = new Blob([doc], { type: "text/html;charset=utf-8" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "VoyagerAI-" + formData.destino.replace(/\s+/g, "-") + ".html";
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              setTimeout(() => URL.revokeObjectURL(url), 1000);
-            }}>⬇ Baixar Plano (.html)</button>
+              const printWindow = window.open('', '_blank');
+              const content = document.querySelector('.plan-markdown');
+              if (!content) return;
+              printWindow.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>VoyagerAI — Plano de Viagem</title><style>@import url(\'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap\');*{box-sizing:border-box;margin:0;padding:0;}body{background:white;color:#1A1A2A;font-family:\'DM Sans\',sans-serif;font-size:11pt;line-height:1.7;padding:15mm 20mm;}h1{font-family:\'Cormorant Garamond\',serif;font-size:22pt;color:#7A5010;margin:18pt 0 8pt;border-bottom:2px solid #C8A96E;padding-bottom:5pt;}h2{font-family:\'Cormorant Garamond\',serif;font-size:15pt;color:#8B6914;margin:14pt 0 6pt;border-bottom:1px solid #E8D5A3;padding-bottom:3pt;}h3{font-size:11pt;color:#333;margin:10pt 0 4pt;font-weight:700;}p{margin:4pt 0;color:#1A1A2A;}li{margin:3pt 0 3pt 16pt;color:#1A1A2A;}strong{color:#5A3A00;}em{color:#555;}a{color:#8B6914;}table{border-collapse:collapse;width:100%;margin:8pt 0;page-break-inside:avoid;}th{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;background:#F5EDD0;color:#7A5010;font-weight:700;text-align:left;}td{padding:7pt 10pt;border:1px solid #CCC;font-size:9pt;color:#1A1A2A;}tr:nth-child(even) td{background:#FAFAF5;}hr{border:none;border-top:1px solid #CCC;margin:8pt 0;}.header{text-align:center;padding-bottom:14pt;margin-bottom:14pt;border-bottom:2px solid #C8A96E;}@page{margin:15mm 20mm;size:A4;}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}</style></head><body><div class="header"><h1>✈ VOYAGERAI</h1><p style="color:#6A6A8A;font-size:10pt;margin-top:4pt">Consultoria Estratégica de Viagens com IA</p></div>' + content.innerHTML + '</body></html>');
+              printWindow.document.close();
+              printWindow.focus();
+              setTimeout(() => { printWindow.print(); printWindow.close(); }, 1000);
+            }}>⬇ Baixar PDF</button>
             <button style={styles.newPlanBtn} onClick={() => {
               setPlanGenerated(false);
               setDisplayText("");
@@ -556,31 +485,35 @@ CNPJ: 11.915.734/0001-17
             <p style={styles.tagline}>Consultoria Estratégica de Viagens com IA</p>
           </header>
 
-          {paymentStep === "select" && (
-            <div style={styles.plansWrap}>
-              <h2 style={styles.sectionTitle}>Escolha seu plano</h2>
-              <p style={styles.sectionSub}>{formData.origem} → <strong>{formData.destino}</strong> · {getDias() || "?"} dias</p>
-              <div style={styles.plansGrid}>
-                {PLANS.map((plan) => (
-                  <div key={plan.id} style={{ ...styles.planCard, ...(selectedPlan === plan.id ? styles.planCardSelected : {}), ...(plan.highlight ? styles.planCardHighlight : {}) }} onClick={() => setSelectedPlan(plan.id)}>
-                    {plan.highlight && <div style={styles.planBadgeTop}>MAIS POPULAR</div>}
-                    <div style={{ ...styles.planPrice, color: plan.color }}>{plan.price}</div>
-                    <div style={styles.planName}>{plan.name}</div>
-                    <div style={styles.planDesc}>{plan.desc}</div>
-                    <ul style={styles.planFeatures}>
-                      {plan.features.map((f, i) => (
-                        <li key={i} style={styles.planFeature}><span style={{ color: plan.color }}>✓</span> {f}</li>
-                      ))}
-                    </ul>
-                    <button style={{ ...styles.selectPlanBtn, background: selectedPlan === plan.id ? plan.color : "transparent", borderColor: plan.color, color: selectedPlan === plan.id ? "#0A0A0F" : plan.color }}>
-                      {selectedPlan === plan.id ? "✓ Selecionado" : "Selecionar"}
-                    </button>
+          {paymentStep === "select" && (() => {
+            const plan = PLANS.find(p => p.id === "estrategico");
+            return (
+              <div style={styles.plansWrap}>
+                <h2 style={styles.sectionTitle}>Seu Plano Estratégico</h2>
+                <p style={styles.sectionSub}>{formData.origem} → <strong>{formData.destino}</strong> · {getDias() || "?"} dias</p>
+
+                <div style={styles.singlePlanWrap}>
+                  <div style={styles.singlePlanBadge}>✦ ACESSO COMPLETO</div>
+                  <div style={styles.singlePlanPrice}>R$ 9<span style={{ fontSize:28, verticalAlign:"top", marginTop:8, display:"inline-block" }}>,90</span></div>
+                  <div style={styles.singlePlanName}>{plan.name}</div>
+                  <div style={styles.singlePlanDesc}>{plan.desc}</div>
+                  <div style={styles.singlePlanDivider} />
+                  <div style={styles.singlePlanFeatures}>
+                    {plan.features.map((f, i) => (
+                      <div key={i} style={styles.singlePlanFeature}>
+                        <span style={styles.singlePlanCheck}>✓</span>
+                        <span>{f}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                  <div style={styles.singlePlanDivider} />
+                  <div style={styles.singlePlanGuarantee}>🔒 Pagamento seguro · Geração imediata após confirmação</div>
+                </div>
+
+                <button style={styles.proceedBtn} onClick={() => setPaymentStep("checkout")}>Continuar para Pagamento →</button>
               </div>
-              <button style={styles.proceedBtn} onClick={() => setPaymentStep("checkout")}>Continuar para Pagamento →</button>
-            </div>
-          )}
+            );
+          })()}
 
           {paymentStep === "checkout" && (
             <div style={styles.checkoutWrap}>
@@ -826,19 +759,10 @@ const planCSS = `
   .md-li { margin:0.4rem 0 0.4rem 1.6rem; line-height:1.8; color:#B8B8C8; }
   .md-oli span { color:#C8A96E; font-weight:700; margin-right:4px; }
 
-  .tbl-wrap { overflow-x:auto; margin:1.4rem 0; border-radius:10px; border:1px solid #2A2A3A; }
-  .md-table { border-collapse:collapse; width:100%; min-width:340px; }
-  .md-table th { padding:11px 15px; background:linear-gradient(135deg,#1A1A2E,#12122A); border-bottom:2px solid #C8A96E; color:#C8A96E; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; text-align:left; font-weight:700; }
-  .md-table td { padding:10px 15px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.88rem; color:#D0D0E0; vertical-align:middle; }
-  .md-table .td-label { color:#E8D5A3; font-weight:600; background:rgba(200,169,110,0.04); }
-  .md-table .td-val { color:#C8C8D8; text-align:right; font-variant-numeric:tabular-nums; }
-  .md-table tbody tr:hover td { background:rgba(200,169,110,0.06); }
-  .md-table .tr-total td { background:rgba(200,169,110,0.12) !important; border-top:2px solid rgba(200,169,110,0.4); color:#C8A96E !important; font-weight:700; font-size:0.92rem; }
-  .md-link { color:#C8A96E !important; text-decoration:underline; word-break:break-all; }
-  .md-h4 { font-size:1rem; color:#E8D5A3; margin:1.4rem 0 0.5rem; font-weight:700; }
-  .md-strong { color:#E8D5A3; }
-  .md-num { color:#C8A96E; font-weight:700; }
-  .md-hr { border:none; border-top:1px solid #2A2A3A; margin:1.5rem 0; }
+  table { border-collapse:collapse; width:100%; margin:1.2rem 0; border-radius:8px; overflow:hidden; }
+  td { padding:10px 16px; border:1px solid #2A2A3A; font-size:0.9rem; color:#B8B8C8; }
+  tr:first-child td { background:#1A1A2A; font-weight:700; color:#C8A96E; font-size:0.85rem; letter-spacing:0.05em; text-transform:uppercase; }
+  tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
   strong { color:#E8D5A3; font-weight:600; }
   em { color:#A8A8C8; font-style:italic; }
 
@@ -924,6 +848,16 @@ const styles = {
   nextBtn: { padding:"14px 36px", background:"linear-gradient(135deg,#8B6914,#C8A96E)", border:"none", borderRadius:10, color:"#080810", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.04em", transition:"all 0.2s" },
   footer: { textAlign:"center", padding:"24px 0", fontSize:12, color:"#3A3A5A" },
   plansWrap: { animation:"fadeUp 0.4s ease" },
+  singlePlanWrap: { background:"linear-gradient(145deg,#0F0F1E,#141428)", border:"1px solid #C8A96E", borderRadius:20, padding:"40px", maxWidth:480, margin:"0 auto 28px", textAlign:"center", boxShadow:"0 0 60px rgba(200,169,110,0.1)" },
+  singlePlanBadge: { display:"inline-block", padding:"5px 16px", background:"rgba(200,169,110,0.15)", border:"1px solid rgba(200,169,110,0.4)", borderRadius:20, color:"#C8A96E", fontSize:11, fontWeight:700, letterSpacing:"0.12em", marginBottom:24 },
+  singlePlanPrice: { fontFamily:"'Cormorant Garamond',serif", fontSize:72, fontWeight:700, color:"#C8A96E", lineHeight:1, marginBottom:8 },
+  singlePlanName: { fontSize:18, fontWeight:700, color:"#F0E8D0", marginBottom:6 },
+  singlePlanDesc: { fontSize:14, color:"#6A6A8A", marginBottom:20, lineHeight:1.5 },
+  singlePlanDivider: { height:1, background:"rgba(200,169,110,0.15)", margin:"20px 0" },
+  singlePlanFeatures: { display:"flex", flexDirection:"column", gap:12, textAlign:"left" },
+  singlePlanFeature: { display:"flex", alignItems:"center", gap:12, fontSize:14, color:"#C8C8D8" },
+  singlePlanCheck: { width:22, height:22, borderRadius:"50%", background:"rgba(200,169,110,0.15)", border:"1px solid rgba(200,169,110,0.4)", display:"flex", alignItems:"center", justifyContent:"center", color:"#C8A96E", fontSize:11, fontWeight:700, flexShrink:0, textAlign:"center", lineHeight:"22px" },
+  singlePlanGuarantee: { fontSize:12, color:"#4A4A6A", textAlign:"center" },
   sectionTitle: { fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:"#E8D5A3", textAlign:"center", marginBottom:8 },
   sectionSub: { textAlign:"center", color:"#6A6A8A", fontSize:14, marginBottom:32 },
   plansGrid: { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:28 },
